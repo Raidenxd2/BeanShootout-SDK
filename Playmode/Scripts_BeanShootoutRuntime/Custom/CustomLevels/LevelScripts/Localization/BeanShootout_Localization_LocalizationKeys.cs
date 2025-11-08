@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace KillItMyself.Runtime
 {
+    [AddComponentMenu("Bean Shootout/Localization Keys")]
     public class BeanShootout_Localization_LocalizationKeys : MonoBehaviour
     {
         public static BeanShootout_Localization_LocalizationKeys instance;
@@ -13,6 +14,11 @@ namespace KillItMyself.Runtime
         private void Awake()
         {
             instance = this;
+        }
+
+        private void OnDestroy()
+        {
+            instance = null;
         }
     }
 

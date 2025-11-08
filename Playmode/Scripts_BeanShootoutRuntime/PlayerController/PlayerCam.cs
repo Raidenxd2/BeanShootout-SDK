@@ -1,9 +1,14 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 
 namespace KillItMyself.Runtime
 {
-    public class PlayerCam : MonoBehaviour
+    [RequireComponent(typeof(Camera))]
+    [RequireComponent(typeof(UniversalAdditionalCameraData))]
+    [RequireComponent(typeof(AudioListener))]
+    public class PlayerCam : NetworkBehaviour
     {
         public float sensX;
         public float sensY;
@@ -21,31 +26,45 @@ namespace KillItMyself.Runtime
 
         private void Start()
         {
+            if (OnlineManager.instance.InOnlineGame && !IsOwner)
+            {
+                gameObject.GetComponent<Camera>().enabled = false;
+                gameObject.GetComponent<AudioListener>().enabled = false;
+                return;
+            }
+
+            // if (OnlineManager.instance.InOnlineGame)
+            // {
+            //     playerControls = GlobalPlayerInput.instance.playerInput;
+            // }
+
+            GetComponent<UniversalAdditionalCameraData>().renderPostProcessing = BetterPrefs.GetBool("PostProcessing", true);
+
             if (!playerHasJoined)
             {
                 gameObject.tag = "Player1Camera";
                 playerHasJoined = true;
             }
 
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            // Cursor.lockState = CursorLockMode.Locked;
+            // Cursor.visible = false;
 
             if (playerControls.currentControlScheme == "Gamepad")
             {
-                sensX = 225;
-                sensY = 225;
+                sensX = 10 * BetterPrefs.GetInt("ControllerSettings_Sensitivity", 10);
+                sensY = 10 * BetterPrefs.GetInt("ControllerSettings_Sensitivity", 10);
             }
 
             if (playerControls.devices[0].displayName.Contains("Keyboard") || playerControls.devices[0].displayName.Contains("Mouse"))
             {
-                sensX = 10;
-                sensY = 10;
+                sensX = 10 * BetterPrefs.GetInt("KeyboardMouseSettings_MouseSensitivity", 1);
+                sensY = 10 * BetterPrefs.GetInt("KeyboardMouseSettings_MouseSensitivity", 1);
             }
         }
 
         private void LateUpdate()
         {
-            if (!canMoveCamera)
+            if (OnlineManager.instance.InOnlineGame && !IsOwner || !canMoveCamera || PauseManager.instance.paused)
             {
                 return;
             }
@@ -67,5 +86,13 @@ namespace KillItMyself.Runtime
         {
             playerHasJoined = false;
         }
+
+#if UNITY_EDITOR
+        [RuntimeInitializeOnLoadMethod]
+        public static void ResetValues()
+        {
+            playerHasJoined = false;
+        }
+#endif
     }
 }

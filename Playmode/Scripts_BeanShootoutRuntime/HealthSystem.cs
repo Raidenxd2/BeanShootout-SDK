@@ -1,13 +1,16 @@
+#if KILLITMYSELF_FULL
+using KillItMyself.Runtime.Achievements;
+#endif
 using System.Collections;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 namespace KillItMyself.Runtime
 {
-    public class HealthSystem : MonoBehaviour
+    public class HealthSystem : NetworkBehaviour
     {
         [SerializeField] private Image HealthBar;
         [SerializeField] private GameObject DeadUI;
@@ -20,11 +23,10 @@ namespace KillItMyself.Runtime
 
         [SerializeField] private LayerMask layerMask;
 
-        private Rigidbody playerRb;
-
         private bool Dead;
         
         private PlayerMovement playerMovement;
+        private Rigidbody playerRb;
 
         public int Health = 100;
         private int PreviousHealth = 100;
@@ -35,64 +37,205 @@ namespace KillItMyself.Runtime
         private bool StopGoingUp;
         private bool CanRespawn;
 
+        [SerializeField] private PlayerInput playerControls;
+
+        [SerializeField] private Transform ControllerButtonsParent;
+        [SerializeField] private GameObject XboxControllerButtons;
+        [SerializeField] private GameObject PlayStationControllerButtons;
+
         private LayerMask OldLayerMask;
+
+        public NetworkVariable<int> OnlineHealth = new(100, NetworkVariableReadPermission.Owner, NetworkVariableWritePermission.Owner);
+
+        private bool DoBusDamage = true;
+
+        private bool DebugMode;
+        private bool GodMode;
+
+#if KILLITMYSELF_FULL
+        [SerializeField] private AchievementSO KillABeanAchievement;
+        [SerializeField] private AchievementSO GenocideAchievement;
+#endif
 
         private void Awake()
         {
-            playerMovement = GetComponent<PlayerMovement>();
-
-            playerRb = playerMovement.GetComponent<Rigidbody>();
-        }
-
-        private void Update()
-        {
-            HealthBar.fillAmount = Health / 100f;
-
-            if (Health <= 0)
+            if (Application.isEditor)
             {
-                if (!Dead)
-                {
-                    StartCoroutine(DeadWait());
-                    DeadUI.SetActive(true);
-                    playerMovement.GetComponent<Rigidbody>().detectCollisions = false;
-                    Instantiate(DeadExplosion, transform.position, Quaternion.identity);
-                }
-
-                Dead = true;
-
-#if UNITY_6000_0_OR_NEWER
-                playerRb.linearVelocity = Vector3.zero;
-#else
-                playerRb.velocity = Vector3.zero;
-#endif
-
-                playerRb.position += new Vector3(0, 0.25f, 0);
+                DebugMode = true;
             }
 
-            if (Dead)
+            playerMovement = GetComponent<PlayerMovement>();
+        }
+
+        private void Start()
+        {
+            if (OnlineManager.instance.InOnlineGame && !IsOwner)
             {
                 return;
             }
 
-            if (PreviousHealth != Health)
+            // if (OnlineManager.instance.InOnlineGame)
+            // {
+            //     playerControls = GlobalPlayerInput.instance.playerInput;
+            // }
+
+            playerRb = playerMovement.GetComponent<Rigidbody>();
+
+            if (playerControls.devices[0].displayName.Contains("Xbox"))
             {
-                PreviousHealth = Health;
-                StartCoroutine(DamageEffect());
+                Instantiate(XboxControllerButtons, ControllerButtonsParent);
+            }
+            if (playerControls.devices[0].displayName.Contains("DualSense") || playerControls.devices[0].displayName.Contains("DualShock"))
+            {
+                Instantiate(PlayStationControllerButtons, ControllerButtonsParent);
             }
         }
 
-        private IEnumerator DamageEffect()
+        private void Update()
+        {
+            if (OnlineManager.instance.InOnlineGame)
+            {
+                if (IsOwner)
+                {
+                    HealthBar.fillAmount = OnlineHealth.Value / 100f;
+
+                    if (OnlineHealth.Value <= 0)
+                    {
+                        if (!Dead)
+                        {
+                            StartCoroutine(DeadWait());
+                            playerMovement.GetComponent<Rigidbody>().detectCollisions = false;
+                            Instantiate(DeadExplosion, transform.position, Quaternion.identity);
+                        }
+
+                        DeadUI.SetActive(true);
+
+                        Dead = true;
+
+                        if (StopGoingUp == false)
+                        {
+                            playerRb.linearVelocity = Vector3.zero;
+
+                            playerRb.position += new Vector3(0, 40f * Time.deltaTime, 0);
+                        }
+                    }
+
+                    if (Dead)
+                    {
+                        return;
+                    }
+
+                    if (PreviousHealth != OnlineHealth.Value)
+                    {
+                        PreviousHealth = OnlineHealth.Value;
+                        StartCoroutine(DamageEffect());
+                    }
+                }
+            }
+            else
+            {
+                HealthBar.fillAmount = Health / 100f;
+
+                if (Health <= 0)
+                {
+                    if (!Dead)
+                    {
+                        StartCoroutine(DeadWait());
+                        playerMovement.GetComponent<Rigidbody>().detectCollisions = false;
+                        Instantiate(DeadExplosion, transform.position, Quaternion.identity);
+                    }
+
+                    DeadUI.SetActive(true);
+
+                    Dead = true;
+
+                    if (playerControls.actions["Jump"].WasPressedThisFrame() && CanRespawn)
+                    {
+                        ReAlive();
+                    }
+                    
+                    if (StopGoingUp == false)
+                    {
+                        playerRb.linearVelocity = Vector3.zero;
+
+                        playerRb.position += new Vector3(0, 40f * Time.deltaTime, 0);
+                    }
+                }
+
+                if (Dead)
+                {
+                    return;
+                }
+
+                if (PreviousHealth != Health)
+                {
+                    PreviousHealth = Health;
+                    StartCoroutine(DamageEffect());
+                }
+            }
+            
+            if (!DebugMode)
+            {
+                return;
+            }
+
+            if (Keyboard.current.semicolonKey.wasPressedThisFrame)
+            {
+                GodMode = !GodMode;
+                if (GodMode)
+                {
+                    Health = 999999999;
+                }
+                else
+                {
+                    Health = 100;
+                }
+            }
+        }
+
+        [Rpc(SendTo.Owner)]
+        public void DamageRpc(int damageVal)
+        {
+            Debug.Log("damage rpc");
+            OnlineHealth.Value -= damageVal;
+        }
+
+        public void BusDamage()
+        {
+            if (DoBusDamage)
+            {
+                DoBusDamage = false;
+                Health -= 80;
+            }
+        }
+
+        public IEnumerator EnableBusDamage()
+        {
+            yield return new WaitForSeconds(5);
+            
+            DoBusDamage = true;
+        }
+
+        WaitForSeconds DamageEffectWaitForSeconds = new(0.1f);
+        public IEnumerator DamageEffect()
         {
             DeadUI.SetActive(true);
-            yield return new WaitForSeconds(0.1f);
+            yield return DamageEffectWaitForSeconds;
             DeadUI.SetActive(false);
         }
 
         public void ReAlive()
         {
-            Health = 100;
+            if (OnlineManager.instance.InOnlineGame)
+            {
+                OnlineHealth.Value = 100;
+            }
+            else
+            {
+                Health = 100;
+            }
 
-            if (playerInput.devices[0].displayName.Contains("Mouse"))
+            if (playerInput.devices[0].displayName.Contains("Mouse") || playerInput.devices[0].displayName.Contains("Keyboard"))
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
@@ -110,20 +253,32 @@ namespace KillItMyself.Runtime
             StopGoingUp = false;
             CanRespawn = false;
 
-            // if (SpawnManager.instance != null)
-            // {
-            //     playerRb.position = SpawnManager.instance.SpawnPoints[Random.Range(0, SpawnManager.instance.SpawnPoints.Length)].position;
-            // }
-            // else
-            // {
+            if (SpawnManager.instance != null)
+            {
+                playerRb.position = SpawnManager.instance.SpawnPoints[Random.Range(0, SpawnManager.instance.SpawnPoints.Length)].position;
+            }
+            else
+            {
                 playerRb.position = Vector3.zero;
-            // }
+            }
 
             FadeAnim.Play("PlayerYouWEODied_Reset");
         }
 
         private IEnumerator DeadWait()
         {
+#if KILLITMYSELF_FULL
+            AchievementManager.instance.GrantAchievement(KillABeanAchievement);
+
+            BetterPrefs.SetInt("Kills", BetterPrefs.GetInt("Kills", 0) + 1);
+
+            if (BetterPrefs.GetInt("Kills", 0) >= 50 && BetterPrefs.GetBool("Genocide", false) == false)
+            {
+                AchievementManager.instance.GrantAchievement(GenocideAchievement);
+                BetterPrefs.Save();
+            }
+#endif
+
             DeathQuoteText.text = DeathQuotes[Random.Range(0, DeathQuotes.Length)];
 
             yield return new WaitForSeconds(5f);
@@ -131,7 +286,7 @@ namespace KillItMyself.Runtime
 
             yield return new WaitForSeconds(1.5f);
             PlayerCamera.GetComponent<PlayerCam>().enabled = false;
-
+            
             OldLayerMask = PlayerCamera.GetComponent<Camera>().cullingMask;
             PlayerCamera.GetComponent<Camera>().cullingMask = layerMask;
 
@@ -140,10 +295,18 @@ namespace KillItMyself.Runtime
             StopGoingUp = true;
             CanRespawn = true;
 
-            if (playerInput.devices[0].displayName.Contains("Mouse"))
+            if (playerInput.devices[0].displayName.Contains("Mouse") || playerInput.devices[0].displayName.Contains("Keyboard"))
             {
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
+            }
+        }
+
+        private new void OnDestroy()
+        {
+            if (OnlineManager.instance.InOnlineGame)
+            {
+                OnlineHealth.Dispose();
             }
         }
     }

@@ -2,6 +2,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace KillItMyself.Runtime
 {
     [AddComponentMenu("Bean Shootout/Localized Text")]
@@ -121,4 +125,27 @@ namespace KillItMyself.Runtime
         TextMeshProText = 1,
         TextMeshProTextUI = 2
     }
+
+#if UNITY_EDITOR
+    public class LocalizationDev : Editor
+    {
+        [MenuItem("Bean Shootout/Dev/Localization/Set language to en")]
+        public static void LanguageEn()
+        {
+            PlayerPrefs.SetString("selected-locale", "en");
+        }
+
+        [MenuItem("Bean Shootout/Dev/Localization/Set language to es")]
+        public static void LanguageEs()
+        {
+            PlayerPrefs.SetString("selected-locale", "es");
+        }
+
+        [MenuItem("Bean Shootout/Dev/Localization/Set language to ja")]
+        public static void LanguageJa()
+        {
+            PlayerPrefs.SetString("selected-locale", "ja");
+        }
+    }
+#endif
 }

@@ -66,7 +66,17 @@ public class Build : EditorWindow
 
             Process GameProcess = new();
             GameProcess.StartInfo.FileName = config.GamePath + "/BeanShootout.exe";
-            GameProcess.StartInfo.Arguments = "-loadlevellocalbuild -gs_fnop " + config.FullscreenWhenTheresNoOtherPlayers + " -gs_sm " + config.ShowMinimap + " -gs_ma " + config.MaxAmmo + " -ga_mp " + config.MaxPlayers;
+            string args = "";
+            if (config.DebugMode)
+            {
+                args += " -Debug";
+            }
+            if (config.FastLoad)
+            {
+                args += " -FastLoad true";
+            }
+            args += " -loadlevellocalbuild -gs_fnop " + config.FullscreenWhenTheresNoOtherPlayers + " -gs_sm " + config.ShowMinimap + " -gs_ma " + config.MaxAmmo + " -ga_mp " + config.MaxPlayers;
+            GameProcess.StartInfo.Arguments = args;
             GameProcess.Start();
 
             EditorUtility.ClearProgressBar();
@@ -202,7 +212,6 @@ public class Build : EditorWindow
         if (Directory.Exists("Assets/Levels/" + SceneName + "/" + BuildPathName))
         {
             Directory.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName, true);
-            AssetDatabase.Refresh();
         }
 
         if (AssetImporter.GetAtPath("Assets/Levels/" + SceneName + "/image.png").assetBundleName != SceneName.ToLower() + "_info")
@@ -220,16 +229,14 @@ public class Build : EditorWindow
 
         File.Move("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName.ToLower() + "_ab", "Assets/Levels/" + SceneName + "/level_data.bundle");
         File.Move("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName.ToLower() + "_info", "Assets/Levels/" + SceneName + "/level_info.bundle");
-        AssetDatabase.Refresh();
 
         Directory.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName, true);
-        AssetDatabase.Refresh();
 
         Directory.CreateDirectory("Assets/Levels/" + SceneName + "/" + BuildPathName);
-        AssetDatabase.Refresh();
 
         File.Move("Assets/Levels/" + SceneName + "/level_data.bundle", "Assets/Levels/" + SceneName + "/" + BuildPathName + "/level_data.bundle");
         File.Move("Assets/Levels/" + SceneName + "/level_info.bundle", "Assets/Levels/" + SceneName + "/" + BuildPathName + "/level_info.bundle");
+
         AssetDatabase.Refresh();
 
         EditorUtility.ClearProgressBar();

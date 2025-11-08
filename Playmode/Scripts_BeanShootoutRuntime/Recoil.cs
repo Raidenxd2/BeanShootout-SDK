@@ -1,8 +1,9 @@
+using Unity.Netcode;
 using UnityEngine;
 
 namespace KillItMyself.Runtime
 {
-    public class Recoil : MonoBehaviour
+    public class Recoil : NetworkBehaviour
     {
         [SerializeField] private RectTransform rt;
 
@@ -11,12 +12,18 @@ namespace KillItMyself.Runtime
 
         private void Update()
         {
-            rt.localRotation = Quaternion.Slerp(rt.localRotation, Quaternion.Euler(0, -107.78f, 0), Time.fixedDeltaTime * speed);
+            rt.localRotation = Quaternion.Slerp(rt.localRotation, Quaternion.Euler(0, -107.78f, 0), speed * Time.deltaTime);
         }
 
         public void FireRecoil()
         {
             rt.localRotation = Quaternion.Euler(rt.localRotation.eulerAngles + rot);
+        }
+
+        [Rpc(SendTo.Everyone)]
+        public void FireRecoilRpc()
+        {
+            FireRecoil();
         }
 
         public void UpdateValuesForCurrentGun(GunSO gun)

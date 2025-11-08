@@ -1,11 +1,28 @@
-using UnityEngine;
+using Unity.Netcode;
 using UnityEngine.InputSystem;
 
 namespace KillItMyself.Runtime
 {
-    public class PauseInput : MonoBehaviour
+    public class PauseInput : NetworkBehaviour
     {
-        [SerializeField] private PlayerInput playerInput;
+        public PlayerInput playerInput;
+
+        public static PauseInput instance;
+
+        private void Awake()
+        {
+            if (!IsOwner)
+            {
+                return;
+            }
+
+            instance = this;
+        }
+
+        private new void OnDestroy()
+        {
+            instance = null;
+        }
 
         private void Update()
         {

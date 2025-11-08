@@ -3,11 +3,16 @@
   "version": "0.7.0",
   "displayName": "The Great Bean Shootout Custom Levels Package",
   "description": "The Great Bean Shootout Custom Levels Package\n\nGame Version: 1.0.0 (unreleased)\n\nGit dependencies:\nShared Shaders: https://github.com/Raidenxd2/SharedShaders",
+  "author": {
+    "name": "OneWing"
+  },
   "unity": "2022.1",
   "dependencies": {
     "com.unity.render-pipelines.universal": "14.0.12",
     "com.unity.inputsystem": "1.11.2",
     "com.unity.sharp-zip-lib": "1.3.9",
-    "com.unity.2d.sprite": "1.0.0"
+    "com.unity.2d.sprite": "1.0.0",
+    "com.unity.netcode.gameobjects": "2.5.0",
+    "com.unity.localization": "1.5.5"
   }
 }

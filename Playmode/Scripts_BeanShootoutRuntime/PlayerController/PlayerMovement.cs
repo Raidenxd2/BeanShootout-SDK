@@ -1,9 +1,12 @@
+using Cysharp.Threading.Tasks;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace KillItMyself.Runtime
 {
-    public class PlayerMovement : MonoBehaviour
+    [RequireComponent(typeof(Rigidbody))]
+    public class PlayerMovement : NetworkBehaviour
     {
         [Header("Movement")]
         public float moveSpeed;
@@ -30,49 +33,135 @@ namespace KillItMyself.Runtime
         public Transform orientation;
         public GameObject playerModel;
         public LayerMask dontRenderLayer;
+        public LayerMask spinnerLayer;
         public bool canMove = true;
+        public bool IsOnKeyboardMouse;
         private float horizontalInput;
         private float verticalInput;
         private Vector3 moveDirection;
         private Rigidbody rb;
+        Transform oldParent = null;
+#if KILLITMYSELF_FULL
+        public GameObject ShipLevel_OverrideCodeInteractUI;
+        public GameObject ShipLevel_OverrideCodeUI;
+#endif
         [SerializeField] private PlayerInput playerControls;
         [SerializeField] private Transform ControllerButtonsParent;
         [SerializeField] private GameObject XboxConrollerButtons;
+        [SerializeField] private GameObject PlayStationButtons;
+        [SerializeField] private GameObject NintendoButtons;
+        [SerializeField] private GameObject GenericButtons;
+        [SerializeField] private Transform PlayerLocationCircle;
+        [SerializeField] private PlayerFade fade;
 
-        [Header("Mobile")]
-        public bool movingForward;
-        public float horizontalInputMobile;
-        public float verticalInputMobile;
+        private bool Respawning;
 
         private void Start()
         {
+            PlayersJoined.instance.Players.Add(gameObject);
+
+            if (OnlineManager.instance.InOnlineGame && !IsOwner)
+            {
+                return;
+            }
+
+            // if (OnlineManager.instance.InOnlineGame)
+            // {
+            //     playerControls = GlobalPlayerInput.instance.playerInput;
+
+            //     PauseInput.instance.playerInput = GlobalPlayerInput.instance.playerInput;
+            // }
+
+            oldParent = transform.parent;
+
+            if (playerControls.currentControlScheme.Contains("Keyboard") || playerControls.currentControlScheme.Contains("Mouse"))
+            {
+                IsOnKeyboardMouse = true;
+            }
+            
             rb = gameObject.GetComponent<Rigidbody>();
             rb.freezeRotation = true;
 
             ResetJump();
             
             Debug.Log("(PlayerMovement) Controller2: " + playerControls.devices[0].displayName);
+            Debug.Log(playerControls.devices[0].name);
 
             if (playerControls.devices[0].displayName.Contains("Xbox"))
             {
                 Instantiate(XboxConrollerButtons, ControllerButtonsParent);
             }
+            else if (playerControls.devices[0].displayName.Contains("DualSense") || playerControls.devices[0].displayName.Contains("DualShock") || playerControls.devices[0].name.Contains("DualShock"))
+            {
+                Instantiate(PlayStationButtons, ControllerButtonsParent);
+            }
+            else if (playerControls.devices[0].displayName.Contains("Nintendo") || playerControls.devices[0].displayName.Contains("Pro Controller") || playerControls.devices[0].name.Contains("Switch") || playerControls.devices[0].name.Contains("ProController"))
+            {
+                Instantiate(NintendoButtons, ControllerButtonsParent);
+            }
+            else if (playerControls.devices[0].name.Contains("Gamepad"))
+            {
+                // Instantiate(GenericButtons, ControllerButtonsParent);
+            }
+
+#if KILLITMYSELF_FULL
+            if (GameObject.Find("BrokenArcadeMachineSound"))
+            {
+                GameObject.Find("BrokenArcadeMachineSound").GetComponent<AudioSource>().volume = 0.2f;
+            }
+#endif
         }
 
         private void FixedUpdate()
         {
+            if (Respawning || OnlineManager.instance.InOnlineGame && !IsOwner)
+            {
+                return;
+            }
+
+            if (transform.position.y <= -100 && !Respawning)
+            {
+                Respawning = true;
+                Respawn().Forget();
+            }
+
             MovePlayer();
+        }
+
+        private async UniTask Respawn()
+        {
+            rb.useGravity = false;
+            rb.linearVelocity = Vector3.zero;
+
+            fade.FadeIn();
+            await UniTask.WaitForSeconds(1f);
+
+            if (SpawnManager.instance != null)
+            {
+                rb.position = SpawnManager.instance.SpawnPoints[Random.Range(0, SpawnManager.instance.SpawnPoints.Length)].position;
+            }
+            else
+            {
+                rb.position = Vector3.zero;
+            }
+
+            rb.useGravity = false;
+            rb.linearVelocity = Vector3.zero;
+
+            Respawning = false;
+            rb.useGravity = true;
+            fade.FadeOut();
         }
 
         private void Update()
         {
-            // Ground check
-            grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
-
-            if (!canMove)
+            if (Respawning || OnlineManager.instance.InOnlineGame && !IsOwner)
             {
                 return;
             }
+
+            // Ground check
+            grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
 
             MyInput();
             SpeedControl();
@@ -80,25 +169,29 @@ namespace KillItMyself.Runtime
             // Handle drag
             if (grounded)
             {
-#if UNITY_6000_0_OR_NEWER
                 rb.linearDamping = groundDrag;
-#else
-                rb.drag = groundDrag;
-#endif
             }
             else
             {
-#if UNITY_6000_0_OR_NEWER
                 rb.linearDamping = 0;
-#else
-                rb.drag = 0;
-#endif
             }
+
+            PlayerLocationCircle.SetPositionAndRotation(new(1500.2f + transform.position.x, 1337.335f + transform.position.y, 1500 + transform.position.z), Quaternion.Euler(-90, playerCam.transform.rotation.eulerAngles.y - 90, 0));
         }
 
         private void MyInput()
         {
-            Vector2 moveDirection = playerControls.actions["Movement"].ReadValue<Vector2>();
+            Vector2 moveDirection;
+
+            if (!canMove)
+            {
+                moveDirection = Vector2.zero;
+                horizontalInput = 0;
+                verticalInput = 0;
+                return;
+            }
+
+            moveDirection = playerControls.actions["Movement"].ReadValue<Vector2>();
             horizontalInput = moveDirection.x;
             verticalInput = moveDirection.y;
 
@@ -111,27 +204,47 @@ namespace KillItMyself.Runtime
 
                 Invoke(nameof(ResetJump), jumpCooldown);
             }
+
+#if KILLITMYSELF_FULL
+            if (playerControls.actions["Interact"].WasPressedThisFrame() && ShipLevel_OverrideCodeInteractUI.activeSelf && !ShipLevel_OverrideCodeUI.activeSelf)
+            {
+                canMove = false;
+
+                Cursor.lockState = CursorLockMode.None;
+                ShipLevel_OverrideCodeUI.SetActive(true);
+            }
+#endif
         }
+
+#if KILLITMYSELF_FULL
+        public void CloseShipOverrideCodeUI()
+        {
+            canMove = true;
+
+            Cursor.lockState = CursorLockMode.Locked;
+            ShipLevel_OverrideCodeUI.SetActive(false);
+        }
+#endif
 
         private void MovePlayer()
         {
+            RaycastHit hitInfo = new();
+            bool hit = Physics.Raycast(transform.position, Vector3.down, out hitInfo, playerHeight * 0.5f + 0.2f, spinnerLayer);
+
+            if (hit)
+            {
+                transform.SetParent(hitInfo.transform);
+            }
+            else
+            {
+                if (oldParent != null)
+                {
+                    transform.SetParent(oldParent);
+                }
+            }
+
             // Calculate movement direction
             moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
-
-            if (movingForward)
-            {
-                moveDirection = orientation.forward * verticalInputMobile + orientation.right * horizontalInputMobile;
-                if (!grounded)
-                {
-                    rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
-                }
-                else
-                {
-                    rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
-                }
-                playerCam.fieldOfView = fovNormal;
-                
-            }
 
             // On ground
             if (grounded)
@@ -156,32 +269,20 @@ namespace KillItMyself.Runtime
 
         private void SpeedControl()
         {
-#if UNITY_6000_0_OR_NEWER
             Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-#else
-            Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-#endif
 
             // Limit velocity if needed
             if (flatVel.magnitude > moveSpeed)
             {
                 Vector3 limitedVel = flatVel.normalized * moveSpeed;
-#if UNITY_6000_0_OR_NEWER
                 rb.linearVelocity = new Vector3(limitedVel.x, rb.linearVelocity.y, limitedVel.z);
-#else
-                rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
-#endif
             }
         }
 
         public void Jump()
         {
             //Reset Y velocity
-#if UNITY_6000_0_OR_NEWER
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-#else
-            rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-#endif
 
             rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
         }

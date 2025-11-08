@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5648377461546647920}
   - component: {fileID: 5943272575966387933}
   - component: {fileID: 3386798203028038049}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: PlayerDeathExplosion
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4843,6 +4843,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1263126603467428848}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 61bf5a37863b72a4f898655059ad0e6a, type: 3}
+  m_Script: {fileID: 11500000, guid: 28bdf3c275204c4499ff4877893bf41e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  timeToDestroy: 3

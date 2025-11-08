@@ -7,6 +7,11 @@ public class BeanShootoutConfigSO : ScriptableObject
     [Tooltip("Used for build and run.")]
     public string GamePath;
 
+    [Tooltip("Enables debugging features.")]
+    public bool DebugMode;
+    [Tooltip("Skips certain parts of loading, such as mod loading and loading screens")]
+    public bool FastLoad;
+
     public bool FullscreenWhenTheresNoOtherPlayers = false;
     public bool ShowMinimap = true;
     public int MaxAmmo = 50;
@@ -22,6 +27,8 @@ public class BeanShootoutConfigSO_Inspector : Editor
     private BeanShootoutConfigSO config;
 
     private SerializedProperty GamePath;
+    private SerializedProperty DebugMode;
+    private SerializedProperty FastLoad;
     private SerializedProperty FullscreenWhenTheresNoOtherPlayers;
     private SerializedProperty ShowMinimap;
     private SerializedProperty MaxAmmo;
@@ -32,6 +39,8 @@ public class BeanShootoutConfigSO_Inspector : Editor
         config = (BeanShootoutConfigSO)target;
 
         GamePath = serializedObject.FindProperty("GamePath");
+        DebugMode = serializedObject.FindProperty("DebugMode");
+        FastLoad = serializedObject.FindProperty("FastLoad");
         FullscreenWhenTheresNoOtherPlayers = serializedObject.FindProperty("FullscreenWhenTheresNoOtherPlayers");
         ShowMinimap = serializedObject.FindProperty("ShowMinimap");
         MaxAmmo = serializedObject.FindProperty("MaxAmmo");
@@ -88,6 +97,17 @@ public class BeanShootoutConfigSO_Inspector : Editor
             config.IsValid = true;
             config.ValidReason = "";
         }
+
+        GUILayout.Space(10);
+
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.FlexibleSpace();
+        GUILayout.Label("Launch Settings", EditorStyles.boldLabel);
+        GUILayout.FlexibleSpace();
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.PropertyField(DebugMode);
+        EditorGUILayout.PropertyField(FastLoad);
 
         GUILayout.Space(10);
 

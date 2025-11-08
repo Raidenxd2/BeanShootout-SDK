@@ -1,9 +1,10 @@
-using System.Collections;
+using Cysharp.Threading.Tasks;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace KillItMyself.Runtime
 {
-    public class BulletMove : MonoBehaviour
+    public class BulletMove : NetworkBehaviour
     {
         private bool collisionEnabled;
         private Rigidbody rb;
@@ -15,12 +16,17 @@ namespace KillItMyself.Runtime
         {
             rb = gameObject.GetComponent<Rigidbody>();
 
-            StartCoroutine(EnableCollision());
-            StartCoroutine(DestroyWait());
+            EnableCollision().Forget();
+            DestroyWait().Forget();
         }
 
         public void FixedUpdate()
         {
+            if (OnlineManager.instance.InOnlineGame && !IsServer)
+            {
+                return;
+            }
+
             if (ShootBackwards)
             {
                 rb.AddForce(-225f * -13 * -transform.forward.normalized, ForceMode.Force);
@@ -40,24 +46,74 @@ namespace KillItMyself.Runtime
             
             if (collision.gameObject.CompareTag("Player"))
             {
-                collision.gameObject.GetComponent<HealthSystem>().Health -= damage;
+                if (OnlineManager.instance.InOnlineGame)
+                {
+                    Debug.Log("damage");
+                    collision.gameObject.GetComponent<HealthSystem>().DamageRpc(damage);
+                    GetComponent<NetworkObject>().Despawn();
+                }
+                else
+                {
+                    collision.gameObject.GetComponent<HealthSystem>().Health -= damage;
+                    Destroy(gameObject);
+                }
+            }
+#if KILLITMYSELF_FULL
+            else if (collision.gameObject.CompareTag("Bossfight/JumbotronScreen"))
+            {
+                BossfightAttacks.instance.Health -= damage;
                 Destroy(gameObject);
             }
+#endif
             else
             {
-                Destroy(gameObject);
+                if (OnlineManager.instance.InOnlineGame)
+                {
+                    GetComponent<NetworkObject>().Despawn();
+                }
+                else
+                {
+                    Destroy(gameObject);
+                }
             }
         }
 
-        private IEnumerator DestroyWait()
+        private async UniTask DestroyWait()
         {
-            yield return new WaitForSeconds(2f);
-            Destroy(gameObject);
+            await UniTask.WaitForSeconds(2f);
+
+            try
+            {
+                if (gameObject == null)
+                {
+                    return;
+                }
+            }
+            catch
+            {
+
+            }
+            
+            try
+            {
+                if (OnlineManager.instance.InOnlineGame)
+                {
+                    GetComponent<NetworkObject>().Despawn();
+                }
+                else
+                {
+                    Destroy(gameObject);
+                }
+            }
+            catch
+            {
+
+            }
         }
 
-        private IEnumerator EnableCollision()
+        private async UniTask EnableCollision()
         {
-            yield return new WaitForSeconds(0.03f);
+            await UniTask.WaitForSeconds(0.03f);
             collisionEnabled = true;
         }
     }

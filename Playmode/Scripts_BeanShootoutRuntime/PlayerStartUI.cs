@@ -1,14 +1,16 @@
 using System.Collections.Generic;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace KillItMyself.Runtime
 {
-    public class PlayerStartUI : MonoBehaviour
+    public class PlayerStartUI : NetworkBehaviour
     {
         [SerializeField] private PlayerInput playerControls;
+        [SerializeField] private PlayerMovement playerMovement;
         [SerializeField] private BulletManager bullet;
         [SerializeField] private Recoil recoil;
 
@@ -21,7 +23,10 @@ namespace KillItMyself.Runtime
         [SerializeField] private Image PlayerVisorColorImage;
 
         [SerializeField] private GameObject XboxControllerIcons;
+        [SerializeField] private GameObject PlayStationControllerIcons;
         [SerializeField] private GameObject UniversalControllerIcons;
+        [SerializeField] private GameObject NintendoButtons;
+        [SerializeField] private GameObject GenericButtons;
         [SerializeField] private Transform ControllerIconsParent;
 
         [SerializeField] private List<GunSO> guns = new();
@@ -32,14 +37,47 @@ namespace KillItMyself.Runtime
         private int PlayerVisorColorCurrentIndex;
 
         [SerializeField] private MeshRenderer playerRenderer;
-        [SerializeField] private MeshRenderer playerVisorRenderer;
         [SerializeField] private MeshRenderer playerLocationRenderer;
-        
+
         private void Start()
         {
+            if (OnlineManager.instance.InOnlineGame && !IsOwner)
+            {
+                return;
+            }
+
+            // if (OnlineManager.instance.InOnlineGame)
+            // {
+            //     playerControls = GlobalPlayerInput.instance.playerInput;
+            // }
+
+            GetComponent<Rigidbody>().position = GameObject.Find("PlayerSpawnBox").transform.position;
+
+#if KILLITMYSELF_FULL
+            if (CustomGunManager.AreGunModsLoaded)
+            {
+                guns.AddRange(CustomGunManager.ModSo);
+            }
+#endif
+
             if (playerControls.devices[0].displayName.Contains("Xbox"))
             {
                 Instantiate(XboxControllerIcons, ControllerIconsParent);
+                Instantiate(UniversalControllerIcons, ControllerIconsParent);
+            }
+            else if (playerControls.devices[0].displayName.Contains("DualSense"))
+            {
+                Instantiate(PlayStationControllerIcons, ControllerIconsParent);
+                Instantiate(UniversalControllerIcons, ControllerIconsParent);
+            }
+            else if (playerControls.devices[0].displayName.Contains("Nintendo") || playerControls.devices[0].displayName.Contains("Pro Controller") || playerControls.devices[0].name.Contains("Switch") || playerControls.devices[0].name.Contains("ProController"))
+            {
+                Instantiate(NintendoButtons, ControllerIconsParent);
+                Instantiate(UniversalControllerIcons, ControllerIconsParent);
+            }
+            else if (playerControls.devices[0].name.Contains("Gamepad"))
+            {
+                // Instantiate(GenericButtons, ControllerIconsParent);
                 Instantiate(UniversalControllerIcons, ControllerIconsParent);
             }
         }
@@ -55,12 +93,21 @@ namespace KillItMyself.Runtime
 
             recoil.UpdateValuesForCurrentGun(guns[currentIndex]);
 
-            playerRenderer.material.color = colors[PlayerColorCurrentIndex];
+            playerRenderer.materials[0].color = colors[PlayerColorCurrentIndex];
+            playerRenderer.materials[1].color = colors[PlayerVisorColorCurrentIndex];
             playerLocationRenderer.material.color = colors[PlayerColorCurrentIndex];
-            playerVisorRenderer.material.color = colors[PlayerVisorColorCurrentIndex];
 
             PlayerStartUIRoot.SetActive(false);
             GetComponent<PlayerStartUI>().enabled = false;
+
+            if (SpawnManager.instance != null)
+            {
+                GetComponent<Rigidbody>().position = SpawnManager.instance.SpawnPoints[Random.Range(0, SpawnManager.instance.SpawnPoints.Length)].position;
+            }
+            else
+            {
+                GetComponent<Rigidbody>().position = Vector3.zero;
+            }
         }
 
         public void GunUp()
@@ -133,8 +180,15 @@ namespace KillItMyself.Runtime
 
         private void Update()
         {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            if (OnlineManager.instance.InOnlineGame && !IsOwner)
+            {
+                return;
+            }
+            
+            if (playerMovement.IsOnKeyboardMouse)
+            {
+                Cursor.lockState = CursorLockMode.None;
+            }
 
             if (playerControls.actions["Jump"].WasPressedThisFrame())
             {

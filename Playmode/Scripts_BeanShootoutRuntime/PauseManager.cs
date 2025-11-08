@@ -1,15 +1,22 @@
+#if KILLITMYSELF_FULL
+using KillItMyself.Runtime.Content.Resources;
+#endif
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace KillItMyself.Runtime
 {
     public class PauseManager : MonoBehaviour
     {
-        private bool paused;
+        public bool paused;
 
         [SerializeField] private GameObject PauseScreen;
 
-        [SerializeField] private PlayerInput playerInput;
+        [SerializeField] private GameObject LoadingAsset;
+
+        [SerializeField] private Transform SettingsMenuParent;
+
+        private CursorLockMode prevCursorLock;
+        private bool prevCanMove;
 
         public static PauseManager instance;
 
@@ -24,21 +31,34 @@ namespace KillItMyself.Runtime
 
             if (paused)
             {
-                Time.timeScale = 0;
+                SetTimeScale(0);
+
+                prevCursorLock = Cursor.lockState;
 
                 Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
 
                 PauseScreen.SetActive(true);
             }
             else
             {
-                Time.timeScale = 1;
+                SetTimeScale(1);
 
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
+                Cursor.lockState = prevCursorLock;
 
                 PauseScreen.SetActive(false);
+            }
+
+            if (OnlineManager.instance.InOnlineGame)
+            {
+                if (paused)
+                {
+                    prevCanMove = CurrentPlayer.instance.playerMovement.canMove;
+                    CurrentPlayer.instance.playerMovement.canMove = false;
+                }
+                else
+                {
+                    CurrentPlayer.instance.playerMovement.canMove = prevCanMove;
+                }   
             }
         }
 
@@ -46,25 +66,83 @@ namespace KillItMyself.Runtime
         {
             paused = false;
 
-            Time.timeScale = 1;
+            SetTimeScale(1);
 
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            Cursor.lockState = prevCursorLock;
 
             PauseScreen.SetActive(false);
         }
 
+#if KILLITMYSELF_FULL
+        public void OpenSettingsMenu()
+        {
+            OpenSettingsMenuAsync();
+        }
+
+        public void CloseSettingsMenu()
+        {
+            SettingsMenuParent.gameObject.SetActive(false);
+
+            Destroy(SettingsMenuParent.GetChild(0).gameObject);
+        }
+
+        private void OpenSettingsMenuAsync()
+        {
+            try
+            {
+                SettingsMenuParent.gameObject.SetActive(true);
+                LoadingAsset.SetActive(true);
+
+                GameObject settingsGO = Instantiate(ResourcesReferences.instance.SettingsPrefab, SettingsMenuParent);
+
+                settingsGO.GetComponent<PauseMenuSettings>().pm = this;
+
+                LoadingAsset.SetActive(false);
+            }
+            catch
+            {
+                DialogManager.instance.ShowDialog(DialogButtonType.OKButton);
+
+                LoadingAsset.SetActive(false);
+            }
+        }
+#endif
+
+        private void SetTimeScale(float val)
+        {
+            if (!OnlineManager.instance.InOnlineGame)
+            {
+                Time.timeScale = val;
+            }
+        }
+
         public void QuitGame()
         {
-            Debug.Log("(PauseManager) Player 1 requested quit.");
-
             Time.timeScale = 1;
 
             PlayerCam.ChangePlayerHasJoined();
 
-            #if UNITY_EDITOR
+#if KILLITMYSELF_FULL
+            if (OnlineManager.instance.InOnlineGame)
+            {
+                OnlineManager.instance.InOnlineGame = false;
+            
+                OnlineManager.instance.DisconnectAsHost();
+                OnlineManager.instance.DisconnectAndLoadMainMenu();
+                return;
+            }
+
+            LoadingManager.instance.LoadSceneWithoutLoadingScreen(AddressableReferences.S_MainMenu);
+#else
+#if UNITY_EDITOR
             UnityEditor.EditorApplication.ExitPlaymode();
-            #endif
+#endif
+#endif
+        }
+
+        private void OnDestroy()
+        {
+            instance = null;
         }
     }
 }

@@ -1,4 +1,4 @@
-using System.Collections;
+using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 
@@ -9,6 +9,7 @@ namespace KillItMyself.Runtime
         public static BulletGlobal instance;
 
         public int Bullets;
+        private int oldBullets;
         public bool Reloading;
 
         [SerializeField] private TMP_Text BulletsText;
@@ -22,20 +23,31 @@ namespace KillItMyself.Runtime
 
         private void Update()
         {
-            BulletsText.text = Bullets.ToString();
+            // Updates the BulletsText if Bullets updates
+            if (Bullets != oldBullets)
+            {
+                oldBullets = Bullets;
+                BulletsText.text = Bullets.ToString();
+            }
 
+            // If Bullets is less or equal to 0 and we are not reloading, reload
             if (Bullets <= 0 && !Reloading)
             {
-                StartCoroutine(BulletReload());
+                BulletReload().Forget();
                 Reloading = true;
             }
         }
 
-        private IEnumerator BulletReload()
+        private async UniTaskVoid BulletReload()
         {
-            yield return new WaitForSeconds(5f);
+            await UniTask.WaitForSeconds(5);
             Bullets = GameSettings.MaxAmmo;
             Reloading = false;
+        }
+
+        private void OnDestroy()
+        {
+            instance = null;
         }
     }
 }
