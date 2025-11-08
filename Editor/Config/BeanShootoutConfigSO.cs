@@ -9,9 +9,11 @@ public class BeanShootoutConfigSO : ScriptableObject
 
     [Tooltip("Enables debugging features.")]
     public bool DebugMode;
-    [Tooltip("Skips certain parts of loading, such as mod loading and loading screens")]
+    [Tooltip("Skips certain parts of loading, such as mod loading and loading screens.")]
     public bool FastLoad;
-
+    [Tooltip("Enables verbose logging.")]
+    public bool VerboseLogging;
+    
     public bool FullscreenWhenTheresNoOtherPlayers = false;
     public bool ShowMinimap = true;
     public int MaxAmmo = 50;
@@ -29,6 +31,7 @@ public class BeanShootoutConfigSO_Inspector : Editor
     private SerializedProperty GamePath;
     private SerializedProperty DebugMode;
     private SerializedProperty FastLoad;
+    private SerializedProperty VerboseLogging;
     private SerializedProperty FullscreenWhenTheresNoOtherPlayers;
     private SerializedProperty ShowMinimap;
     private SerializedProperty MaxAmmo;
@@ -41,6 +44,7 @@ public class BeanShootoutConfigSO_Inspector : Editor
         GamePath = serializedObject.FindProperty("GamePath");
         DebugMode = serializedObject.FindProperty("DebugMode");
         FastLoad = serializedObject.FindProperty("FastLoad");
+        VerboseLogging = serializedObject.FindProperty("VerboseLogging");
         FullscreenWhenTheresNoOtherPlayers = serializedObject.FindProperty("FullscreenWhenTheresNoOtherPlayers");
         ShowMinimap = serializedObject.FindProperty("ShowMinimap");
         MaxAmmo = serializedObject.FindProperty("MaxAmmo");
@@ -108,6 +112,7 @@ public class BeanShootoutConfigSO_Inspector : Editor
 
         EditorGUILayout.PropertyField(DebugMode);
         EditorGUILayout.PropertyField(FastLoad);
+        EditorGUILayout.PropertyField(VerboseLogging);
 
         GUILayout.Space(10);
 

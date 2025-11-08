@@ -75,6 +75,10 @@ public class Build : EditorWindow
             {
                 args += " -FastLoad true";
             }
+            if (config.VerboseLogging)
+            {
+                args += " -verbose";
+            }
             args += " -loadlevellocalbuild -gs_fnop " + config.FullscreenWhenTheresNoOtherPlayers + " -gs_sm " + config.ShowMinimap + " -gs_ma " + config.MaxAmmo + " -ga_mp " + config.MaxPlayers;
             GameProcess.StartInfo.Arguments = args;
             GameProcess.Start();
