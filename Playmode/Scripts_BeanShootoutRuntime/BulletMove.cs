@@ -7,27 +7,34 @@ namespace KillItMyself.Runtime
     public class BulletMove : NetworkBehaviour
     {
         private bool collisionEnabled;
-        private Rigidbody rb;
+        [SerializeField] private Rigidbody rb;
 
         public int damage;
         public bool ShootBackwards;
 
+        private bool HasBeenDestroyed;
+
+        public NetworkVariable<int> damageOnline = new(readPerm: NetworkVariableReadPermission.Everyone, writePerm: NetworkVariableWritePermission.Server);
+        public NetworkVariable<bool> ShootBackwardsOnline = new(readPerm: NetworkVariableReadPermission.Everyone, writePerm: NetworkVariableWritePermission.Server);
+
         private void Start()
         {
-            rb = gameObject.GetComponent<Rigidbody>();
-
             EnableCollision().Forget();
             DestroyWait().Forget();
         }
 
         public void FixedUpdate()
         {
-            if (OnlineManager.instance.InOnlineGame && !IsServer)
+            if (OnlineManager.instance.InOnlineGame && !IsOwner)
             {
                 return;
             }
 
-            if (ShootBackwards)
+            if (OnlineManager.instance.InOnlineGame && ShootBackwardsOnline.Value)
+            {
+                rb.AddForce(-225f * -13 * -transform.forward.normalized, ForceMode.Force);
+            }
+            else if (ShootBackwards || (OnlineManager.instance.InOnlineGame && ShootBackwardsOnline.Value))
             {
                 rb.AddForce(-225f * -13 * -transform.forward.normalized, ForceMode.Force);
             }
@@ -48,12 +55,14 @@ namespace KillItMyself.Runtime
             {
                 if (OnlineManager.instance.InOnlineGame)
                 {
-                    Debug.Log("damage");
-                    collision.gameObject.GetComponent<HealthSystem>().DamageRpc(damage);
-                    GetComponent<NetworkObject>().Despawn();
+                    // HitRpc(collision);
+                    HasBeenDestroyed = true;
+                    collision.gameObject.GetComponent<HealthSystem>().DamageRpc(damageOnline.Value);
+                    DespawnObjectRpc();
                 }
                 else
                 {
+                    HasBeenDestroyed = true;
                     collision.gameObject.GetComponent<HealthSystem>().Health -= damage;
                     Destroy(gameObject);
                 }
@@ -61,6 +70,7 @@ namespace KillItMyself.Runtime
 #if KILLITMYSELF_FULL
             else if (collision.gameObject.CompareTag("Bossfight/JumbotronScreen"))
             {
+                HasBeenDestroyed = true;
                 BossfightAttacks.instance.Health -= damage;
                 Destroy(gameObject);
             }
@@ -69,45 +79,46 @@ namespace KillItMyself.Runtime
             {
                 if (OnlineManager.instance.InOnlineGame)
                 {
-                    GetComponent<NetworkObject>().Despawn();
+                    HasBeenDestroyed = true;
+                    DespawnObjectRpc();
                 }
                 else
                 {
+                    HasBeenDestroyed = true;
                     Destroy(gameObject);
                 }
             }
         }
 
+        //[Rpc(SendTo.Server)]
+        //public void HitRpc(Collision collision)
+        //{
+        //    Debug.Log("HitRpc");
+        //    collision.gameObject.GetComponent<HealthSystem>().DamageRpc(damage);
+        //    DespawnObjectRpc();
+        //}
+
+        [Rpc(SendTo.Server)]
+        public void DespawnObjectRpc()
+        {
+            GetComponent<NetworkObject>().Despawn();
+        }
+
         private async UniTask DestroyWait()
         {
             await UniTask.WaitForSeconds(2f);
-
-            try
+            if (HasBeenDestroyed)
             {
-                if (gameObject == null)
-                {
-                    return;
-                }
-            }
-            catch
-            {
-
+                return;
             }
             
-            try
+            if (OnlineManager.instance.InOnlineGame)
             {
-                if (OnlineManager.instance.InOnlineGame)
-                {
-                    GetComponent<NetworkObject>().Despawn();
-                }
-                else
-                {
-                    Destroy(gameObject);
-                }
+                GetComponent<NetworkObject>().Despawn();
             }
-            catch
+            else
             {
-
+                Destroy(gameObject);
             }
         }
 

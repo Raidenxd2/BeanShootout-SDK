@@ -26,7 +26,10 @@ namespace KillItMyself.Runtime
         {
             yield return new WaitForSeconds(totalDuration);
 
-            GetComponent<NetworkObject>().Despawn();
+            if (gameObject)
+            {
+                GetComponent<NetworkObject>().Despawn();
+            }
         }
     }
 }

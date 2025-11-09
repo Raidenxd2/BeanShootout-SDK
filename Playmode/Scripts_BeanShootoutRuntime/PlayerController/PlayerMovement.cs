@@ -2,27 +2,17 @@ using Cysharp.Threading.Tasks;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 namespace KillItMyself.Runtime
 {
     [RequireComponent(typeof(Rigidbody))]
     public class PlayerMovement : NetworkBehaviour
     {
-        [Header("Movement")]
-        public float moveSpeed;
-        public float sprintSpeed;
-
-        public float groundDrag;
-
-        public float jumpForce;
-        public float jumpCooldown;
-        public float airMultiplier;
-        public bool readyToJump;
+        private bool readyToJump;
 
         [Header("Camera")]
         public Camera playerCam;
-        public float fovNormal = 75f;
-        public float fovSprint = 80f;
 
         [Header("Ground Check")]
         public float playerHeight;
@@ -44,6 +34,7 @@ namespace KillItMyself.Runtime
 #if KILLITMYSELF_FULL
         public GameObject ShipLevel_OverrideCodeInteractUI;
         public GameObject ShipLevel_OverrideCodeUI;
+        public GameObject HotelLevel_LeverInteractUI;
 #endif
         [SerializeField] private PlayerInput playerControls;
         [SerializeField] private Transform ControllerButtonsParent;
@@ -53,6 +44,16 @@ namespace KillItMyself.Runtime
         [SerializeField] private GameObject GenericButtons;
         [SerializeField] private Transform PlayerLocationCircle;
         [SerializeField] private PlayerFade fade;
+
+        [SerializeField] private BulletManager bulletManager;
+        [SerializeField] private PlayerCam playerCamComponent;
+
+        private CursorLockMode prevCursorLockMode;
+        private bool prevCanMove;
+        private bool prevCannotShootNoMatterWhat;
+        private bool prevCanShoot;
+        private bool prevCanMoveCamera;
+        private Vector3 prevVel;
 
         private bool Respawning;
 
@@ -65,12 +66,12 @@ namespace KillItMyself.Runtime
                 return;
             }
 
-            // if (OnlineManager.instance.InOnlineGame)
-            // {
-            //     playerControls = GlobalPlayerInput.instance.playerInput;
-
-            //     PauseInput.instance.playerInput = GlobalPlayerInput.instance.playerInput;
-            // }
+#if KILLITMYSELF_FULL            
+            if (SceneManager.GetActiveScene().name == "Secret_BossfightPhase1")
+            {
+                BossfightAttacks.instance.AddHealthForPlayer();
+            }
+#endif
 
             oldParent = transform.parent;
 
@@ -84,8 +85,8 @@ namespace KillItMyself.Runtime
 
             ResetJump();
             
-            Debug.Log("(PlayerMovement) Controller2: " + playerControls.devices[0].displayName);
-            Debug.Log(playerControls.devices[0].name);
+            BeanLogger.Log("Controller2: " + playerControls.devices[0].displayName, this);
+            BeanLogger.Log(playerControls.devices[0].name, this);
 
             if (playerControls.devices[0].displayName.Contains("Xbox"))
             {
@@ -169,7 +170,7 @@ namespace KillItMyself.Runtime
             // Handle drag
             if (grounded)
             {
-                rb.linearDamping = groundDrag;
+                rb.linearDamping = GameSettings.MovementSettings.groundDrag;
             }
             else
             {
@@ -202,13 +203,13 @@ namespace KillItMyself.Runtime
 
                 Jump();
 
-                Invoke(nameof(ResetJump), jumpCooldown);
+                Invoke(nameof(ResetJump), GameSettings.MovementSettings.jumpCooldown);
             }
 
 #if KILLITMYSELF_FULL
             if (playerControls.actions["Interact"].WasPressedThisFrame() && ShipLevel_OverrideCodeInteractUI.activeSelf && !ShipLevel_OverrideCodeUI.activeSelf)
             {
-                canMove = false;
+                PreventPlayerFromDoingAnything();
 
                 Cursor.lockState = CursorLockMode.None;
                 ShipLevel_OverrideCodeUI.SetActive(true);
@@ -219,7 +220,7 @@ namespace KillItMyself.Runtime
 #if KILLITMYSELF_FULL
         public void CloseShipOverrideCodeUI()
         {
-            canMove = true;
+            LetPlayerDoAnything();
 
             Cursor.lockState = CursorLockMode.Locked;
             ShipLevel_OverrideCodeUI.SetActive(false);
@@ -251,19 +252,19 @@ namespace KillItMyself.Runtime
             {
                 if (playerControls.actions["Sprint"].IsPressed())
                 {
-                    playerCam.fieldOfView = fovSprint;
-                    rb.AddForce(moveDirection.normalized * sprintSpeed * 10f, ForceMode.Force);
+                    playerCam.fieldOfView = GameSettings.MovementSettings.fovSprint;
+                    rb.AddForce(moveDirection.normalized * GameSettings.MovementSettings.sprintSpeed * 10f, ForceMode.Force);
                 }
                 else
                 {
-                    playerCam.fieldOfView = fovNormal;
-                    rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
+                    playerCam.fieldOfView = GameSettings.MovementSettings.fovNormal;
+                    rb.AddForce(moveDirection.normalized * GameSettings.MovementSettings.moveSpeed * 10f, ForceMode.Force);
                 }
             }
             // In air
             else if (!grounded)
             {
-                rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
+                rb.AddForce(moveDirection.normalized * GameSettings.MovementSettings.moveSpeed * 10f * GameSettings.MovementSettings.airMultiplier, ForceMode.Force);
             }
         }
 
@@ -272,9 +273,9 @@ namespace KillItMyself.Runtime
             Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
             // Limit velocity if needed
-            if (flatVel.magnitude > moveSpeed)
+            if (flatVel.magnitude > GameSettings.MovementSettings.moveSpeed)
             {
-                Vector3 limitedVel = flatVel.normalized * moveSpeed;
+                Vector3 limitedVel = flatVel.normalized * GameSettings.MovementSettings.moveSpeed;
                 rb.linearVelocity = new Vector3(limitedVel.x, rb.linearVelocity.y, limitedVel.z);
             }
         }
@@ -284,12 +285,37 @@ namespace KillItMyself.Runtime
             //Reset Y velocity
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
-            rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+            rb.AddForce(transform.up * GameSettings.MovementSettings.jumpForce, ForceMode.Impulse);
         }
 
         public void ResetJump()
         {
             readyToJump = true;
+        }
+
+        public void PreventPlayerFromDoingAnything()
+        {
+            prevCanMove = canMove;
+            prevVel = GetComponent<Rigidbody>().linearVelocity;
+            prevCanShoot = bulletManager.CanShoot;
+            prevCanMoveCamera = playerCamComponent.canMoveCamera;
+            prevCannotShootNoMatterWhat = bulletManager.CannotShootNoMatterWhat;
+            canMove = false;
+            rb.linearVelocity = Vector3.zero;
+            bulletManager.CanShoot = false;
+            bulletManager.CannotShootNoMatterWhat = true;
+            playerCamComponent.canMoveCamera = false;
+        }
+
+        public void LetPlayerDoAnything()
+        {
+            Cursor.lockState = prevCursorLockMode;
+
+            canMove = prevCanMove;
+            rb.linearVelocity = prevVel;
+            bulletManager.CanShoot = prevCanShoot;
+            bulletManager.CannotShootNoMatterWhat = prevCannotShootNoMatterWhat;
+            playerCamComponent.canMoveCamera = prevCanMoveCamera;
         }
     }
 }

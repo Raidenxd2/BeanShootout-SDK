@@ -15,10 +15,10 @@ MonoBehaviour:
   GunName: Karma Gun
   Image: {fileID: 21300000, guid: 429f6afcce77c2b4694d8aef6b903efb, type: 3}
   AmountOfBulletsToShoot: 1
-  BulletsThatAreUsed: 6
-  Damage: 49
-  HoldToShoot: 1
-  Delay: 2.6
+  BulletsThatAreUsed: 1
+  Damage: 23
+  HoldToShoot: 0
+  Delay: 0.6
   ShootBackwards: 1
   RecoilSpeed: 3
   RecoilRot: {x: 0, y: 0, z: -25}

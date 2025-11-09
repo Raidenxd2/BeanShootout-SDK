@@ -13,9 +13,16 @@ namespace KillItMyself.Runtime
         public bool Reloading;
 
         [SerializeField] private TMP_Text BulletsText;
+        [SerializeField] private GameObject BulletsRoot;
 
         private void Awake()
         {
+            if (!GameSettings.SharedAmmo)
+            {
+                BulletsRoot.SetActive(false);
+                return;
+            }
+
             instance = this;
 
             Bullets = GameSettings.MaxAmmo;
@@ -23,6 +30,11 @@ namespace KillItMyself.Runtime
 
         private void Update()
         {
+            if (!GameSettings.SharedAmmo)
+            {
+                return;
+            }
+
             // Updates the BulletsText if Bullets updates
             if (Bullets != oldBullets)
             {

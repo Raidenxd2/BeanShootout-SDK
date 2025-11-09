@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -23,12 +24,14 @@ namespace KillItMyself.Runtime
 
         [SerializeField] private Recoil recoil;
 
+        [SerializeField] private PlayerAmmo playerAmmo;
+
         public bool CanShoot;
         public bool CannotShootNoMatterWhat;
 
         private void Update()
         {
-            if (gun == null)
+            if (!gun)
             {
                 return;
             }
@@ -56,9 +59,16 @@ namespace KillItMyself.Runtime
             }
 
             // If were in an online game, check the online BulletGlobal if were reloading, else check the local BulletGlobal
-            if (OnlineManager.instance.InOnlineGame)
+            if (OnlineManager.instance.InOnlineGame && GameSettings.SharedAmmo)
             {
                 if (BulletGlobalOnline.instance.Reloading.Value || !CanShoot)
+                {
+                    return;
+                }
+            }
+            else if (!GameSettings.SharedAmmo)
+            {
+                if (playerAmmo.Reloading || !CanShoot)
                 {
                     return;
                 }
@@ -74,67 +84,80 @@ namespace KillItMyself.Runtime
             }
 
             // If were in an online game, Reduce the amount of bullets for the online BulletGlobal, else reduce the amont of bullets for the local BulletGlobal
-            if (OnlineManager.instance.InOnlineGame)
+            if (OnlineManager.instance.InOnlineGame && GameSettings.SharedAmmo)
             {
                 BulletGlobalOnline.instance.ReduceBulletCountRpc(gun.BulletsThatAreUsed);
             }
-            else
+            else if (GameSettings.SharedAmmo)
             {
                 BulletGlobal.instance.Bullets -= gun.BulletsThatAreUsed;
+            }
+            else
+            {
+                playerAmmo.ammo -= gun.BulletsThatAreUsed;
             }
 
             if (gun.Delay > 0)
             {
                 DelayShot().Forget();
             }
+            
+            if (OnlineManager.instance.InOnlineGame)
+            {
+                recoil.FireRecoilRpc();
+            }
+            else
+            {
+                recoil.FireRecoil();
+            }
+            
+            Quaternion rot = Quaternion.Euler(new Vector3(Player1Transform.eulerAngles.x, Player1Transform.eulerAngles.y, Player1Transform.eulerAngles.z));
+
+            if (OnlineManager.instance.InOnlineGame)
+            {
+                BulletGlobalOnline.instance.SpawnBulletParticleRpc(BulletOffset.position, rot);
+            }
+            else
+            {
+                Instantiate(GunShootParticle, GunShootParticleOffset.position, Quaternion.Euler(new Vector3(0, 0, 0)), BulletParent);
+            }
 
             for (int i = 0; i < gun.AmountOfBulletsToShoot; i++)
             {
-                if (OnlineManager.instance.InOnlineGame)
-                {
-                    recoil.FireRecoilRpc();
-                }
-                else
-                {
-                    recoil.FireRecoil();
-                }
-
-                GameObject bullet = null;
+                BulletMove bullet = null;
 
                 // Spawn bullet and if the gun shoots backwards, face the opossite direction of the players camera, else face the players camera
                 if (gun.ShootBackwards)
                 {
                     if (OnlineManager.instance.InOnlineGame)
                     {
-                        BulletGlobalOnline.instance.SpawnBulletRpc(BulletOffsetBehind.position, Quaternion.Euler(new Vector3(Player1Transform.eulerAngles.x, Player1Transform.eulerAngles.y, Player1Transform.eulerAngles.z)), gun.Damage, gun.ShootBackwards);
+                        BulletGlobalOnline.instance.SpawnBulletRpc(BulletOffsetBehind.position, rot, gun.Damage, gun.ShootBackwards, NetworkManager.Singleton.LocalClientId);
                     }
                     else
                     {
-                        bullet = Instantiate(BulletPrefab, BulletOffsetBehind.position, Quaternion.Euler(new Vector3(Player1Transform.eulerAngles.x, Player1Transform.eulerAngles.y, Player1Transform.eulerAngles.z)), BulletParent);
-                        Instantiate(GunShootParticle, GunShootParticleOffset.position, Quaternion.Euler(new Vector3(0, 0, 0)), BulletParent);
+                        bullet = Instantiate(BulletPrefab, BulletOffsetBehind.position, rot, BulletParent).GetComponent<BulletMove>();
                     }
                 }
                 else
                 {
                     if (OnlineManager.instance.InOnlineGame)
                     {
-                        BulletGlobalOnline.instance.SpawnBulletRpc(BulletOffset.position, Quaternion.Euler(new Vector3(Player1Transform.eulerAngles.x, Player1Transform.eulerAngles.y, Player1Transform.eulerAngles.z)), gun.Damage, gun.ShootBackwards);
+                        BulletGlobalOnline.instance.SpawnBulletRpc(BulletOffset.position, rot, gun.Damage, gun.ShootBackwards, NetworkManager.Singleton.LocalClientId);
                     }
                     else
                     {
-                        bullet = Instantiate(BulletPrefab, BulletOffset.position, Quaternion.Euler(new Vector3(Player1Transform.eulerAngles.x, Player1Transform.eulerAngles.y, Player1Transform.eulerAngles.z)), BulletParent);
-                        Instantiate(GunShootParticle, GunShootParticleOffset.position, Quaternion.Euler(new Vector3(0, 0, 0)), BulletParent);
+                        bullet = Instantiate(BulletPrefab, BulletOffset.position, rot, BulletParent).GetComponent<BulletMove>();
                     }
                 }
                 
                 // If were not in an online game, set the bullets damage and set shoot backwards
                 if (!OnlineManager.instance.InOnlineGame)
                 {
-                    bullet.GetComponent<BulletMove>().damage = gun.Damage;
+                    bullet.damage = gun.Damage;
 
                     if (gun.ShootBackwards)
                     {
-                        bullet.GetComponent<BulletMove>().ShootBackwards = true;
+                        bullet.ShootBackwards = true;
                     }
                 }
             }

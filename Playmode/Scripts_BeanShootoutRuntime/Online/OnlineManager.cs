@@ -11,8 +11,11 @@ namespace KillItMyself.Runtime
         public static OnlineManager instance;
 
         public bool InOnlineGame;
+        public bool Host_InGame;
 
         public bool Disconnecting;
+
+        public bool IgnoreErrors;
 
         [SerializeField] private GameObject NetworkManagerPrefab;
 
@@ -29,6 +32,8 @@ namespace KillItMyself.Runtime
 
             NetworkManager.Singleton.OnClientStarted += OnClientStarted;
             NetworkManager.Singleton.OnClientStopped += OnClientStopped;
+
+            NetworkManager.Singleton.ConnectionApprovalCallback = ApprovalCheck;
         }
 
         private void OnClientStarted()
@@ -43,6 +48,11 @@ namespace KillItMyself.Runtime
 
         private void OnTransportFailure()
         {
+            if (IgnoreErrors)
+            {
+                return;
+            }
+
             OnTransportFailureAsync().Forget();
         }
 
@@ -62,11 +72,29 @@ namespace KillItMyself.Runtime
                 errorString += "\n<size=25>" + DebugLogPrev.prevLog + "</size>";
                 DebugLogPrev.prevLog = null;
             }
-// #else
-            // string errorString = "<size=25>A network error has occurred. (Transport)\nPlease check that the IP address you are connecting to is valid/correct and that you have an internet connection.\nCannot get error details in non Bean Shootout Unity project.</size>";
-// #endif
 
             NetworkErrorManager.instance.ShowErrorAndDisconnect(errorString);
+        }
+
+        public void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
+        {
+            if (NetworkManager.Singleton.IsServer)
+            {
+                response.Approved = true;
+            }
+
+            if (Host_InGame)
+            {
+                response.Approved = false;
+                response.Reason = "You were kicked from the server: Cannot join in progress game.";
+                return;
+            }
+
+            response.CreatePlayerObject = true;
+            response.PlayerPrefabHash = null;
+            response.Position = Vector3.zero;
+            response.Rotation = Quaternion.identity;
+            response.Pending = false;
         }
 
         public void DisconnectAsHost()
@@ -91,18 +119,19 @@ namespace KillItMyself.Runtime
 
             OnlineSceneManagement.instance.Stop();
 
-            Debug.LogWarning("(OnlineManager) Host left.");
+            BeanLogger.LogWarning("Host left.", this);
 
             NetworkManager.Singleton.Shutdown();
 
             Destroy(GameObject.Find("PlayerInput(Clone)"));
 
-            HostLeftDialogAsync().Forget();
+            HostLeftDialogAsync(true).Forget();
         }
 
         public void DisconnectAndLoadMainMenu()
         {
             Disconnecting = true;
+            Host_InGame = false;
 
             NetworkManager.Singleton.Shutdown();
 
@@ -110,24 +139,29 @@ namespace KillItMyself.Runtime
 
             Destroy(GameObject.Find("PlayerInput(Clone)"));
 
-            LoadingManager.instance.LoadScene(AddressableReferences.S_MainMenu);
+            LoadingManager.instance.LoadScene(SceneNames.S_MainMenu, false);
         }
 
         private void OnConnectionEvent(NetworkManager manager, ConnectionEventData data)
         {
+            if (IgnoreErrors)
+            {
+                return;
+            }
+
             if (Disconnecting)
             {
                 Disconnecting = false;
                 return;
             }
             
-            Debug.Log("(OnlineManager) OnConnectionEvent for " + data.ClientId + " (" + data.EventType + ")");
+            BeanLogger.Log("OnConnectionEvent for " + data.ClientId + " (" + data.EventType + ")", this);
 
             if (data.EventType == ConnectionEvent.ClientDisconnected && NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsServer)
             {
                 if (data.ClientId == 0)
                 {
-                    Debug.LogWarning("(OnlineManager) Host left.");
+                    BeanLogger.LogWarning("Host left.", this);
 
                     HostLeftDialogAsync().Forget();
                 }
@@ -136,6 +170,11 @@ namespace KillItMyself.Runtime
 
         private void OnDisconnect(ulong arg0)
         {
+            if (IgnoreErrors)
+            {
+                return;
+            }
+
             if (Disconnecting)
             {
                 Disconnecting = false;
@@ -146,28 +185,50 @@ namespace KillItMyself.Runtime
             {
                 if (arg0 == 0)
                 {
-                    Debug.LogWarning("(OnlineManager) Host left.");
+                    BeanLogger.LogWarning("Host left.", this);
 
                     HostLeftDialogAsync().Forget();
                 }
             }
         }
 
-        private async UniTaskVoid HostLeftDialogAsync()
+        private async UniTaskVoid HostLeftDialogAsync(bool forceDisconnect = false)
         {
-            if (ServerTick.instance != null)
+            if (IgnoreErrors && !forceDisconnect)
+            {
+                return;
+            }
+
+            if (ServerTick.instance)
             {
                 ServerTick.instance.Stop();
             }
 
             Destroy(GameObject.Find("PlayerInput(Clone)"));
             
-            NetworkErrorManager.instance.ShowErrorAndDisconnect(await LocalizedStringReferences.instance.Online_HostLeft.GetLocalizedStringAsync());
+            if (!string.IsNullOrEmpty(NetworkManager.Singleton.DisconnectReason))
+            {
+                NetworkErrorManager.instance.ShowErrorAndDisconnect("<size=25>" + NetworkManager.Singleton.DisconnectReason + "\n\nReturning to main menu...</size>");
+            }
+            else
+            {
+                NetworkErrorManager.instance.ShowErrorAndDisconnect(await LocalizedStringReferences.instance.Online_HostLeft.GetLocalizedStringAsync());
+            }
         }
 #endif
 
         private void OnDestroy()
         {
+#if KILLITMYSELF_FULL            
+            NetworkManager.Singleton.OnTransportFailure -= OnTransportFailure;
+            NetworkManager.Singleton.OnConnectionEvent -= OnConnectionEvent;
+
+            NetworkManager.Singleton.OnClientStarted -= OnClientStarted;
+            NetworkManager.Singleton.OnClientStopped -= OnClientStopped;
+
+            NetworkManager.Singleton.ConnectionApprovalCallback = null;
+#endif
+
             instance = null;
         }
     }

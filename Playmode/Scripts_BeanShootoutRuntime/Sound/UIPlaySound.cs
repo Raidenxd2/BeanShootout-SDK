@@ -7,7 +7,7 @@ namespace KillItMyself.Runtime
         public void PlaySound(int sound)
         {
 #if KILLITMYSELF_FULL
-            SoundManager.instance.PlaySound(sound);
+            SoundManager.PlaySound(sound);
 #endif
         }
     }

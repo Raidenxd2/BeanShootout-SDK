@@ -2,6 +2,7 @@
 using KillItMyself.Runtime.Content.Resources;
 #endif
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace KillItMyself.Runtime
 {
@@ -14,6 +15,9 @@ namespace KillItMyself.Runtime
         [SerializeField] private GameObject LoadingAsset;
 
         [SerializeField] private Transform SettingsMenuParent;
+
+        [SerializeField] private GameObject ResumeGameButton;
+        [SerializeField] private GameObject NoButton;
 
         private CursorLockMode prevCursorLock;
         private bool prevCanMove;
@@ -38,6 +42,8 @@ namespace KillItMyself.Runtime
                 Cursor.lockState = CursorLockMode.None;
 
                 PauseScreen.SetActive(true);
+
+                EventSystem.current.SetSelectedGameObject(ResumeGameButton);
             }
             else
             {
@@ -73,6 +79,16 @@ namespace KillItMyself.Runtime
             PauseScreen.SetActive(false);
         }
 
+        public void ShowExitGameScreen()
+        {
+            EventSystem.current.SetSelectedGameObject(NoButton);
+        }
+
+        public void DontShowExitGameScreen()
+        {
+            EventSystem.current.SetSelectedGameObject(ResumeGameButton);
+        }
+
 #if KILLITMYSELF_FULL
         public void OpenSettingsMenu()
         {
@@ -93,7 +109,7 @@ namespace KillItMyself.Runtime
                 SettingsMenuParent.gameObject.SetActive(true);
                 LoadingAsset.SetActive(true);
 
-                GameObject settingsGO = Instantiate(ResourcesReferences.instance.SettingsPrefab, SettingsMenuParent);
+                GameObject settingsGO = Instantiate(ResourcesReferences.SettingsPrefab, SettingsMenuParent);
 
                 settingsGO.GetComponent<PauseMenuSettings>().pm = this;
 
@@ -125,6 +141,8 @@ namespace KillItMyself.Runtime
 #if KILLITMYSELF_FULL
             if (OnlineManager.instance.InOnlineGame)
             {
+                LoadingManagerOnline.ClearCurrentIPPref();
+
                 OnlineManager.instance.InOnlineGame = false;
             
                 OnlineManager.instance.DisconnectAsHost();
@@ -132,11 +150,9 @@ namespace KillItMyself.Runtime
                 return;
             }
 
-            LoadingManager.instance.LoadSceneWithoutLoadingScreen(AddressableReferences.S_MainMenu);
-#else
-#if UNITY_EDITOR
+            LoadingManager.instance.LoadScene(SceneNames.S_MainMenu, false);
+#elif UNITY_EDITOR
             UnityEditor.EditorApplication.ExitPlaymode();
-#endif
 #endif
         }
 

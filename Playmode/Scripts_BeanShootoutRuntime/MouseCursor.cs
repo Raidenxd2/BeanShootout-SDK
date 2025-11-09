@@ -19,13 +19,6 @@ namespace KillItMyself.Runtime
             Cursor.visible = false;
         }
 
-#if UNITY_ANDROID
-        private void Start()
-        {
-            CursorImage.enabled = false;
-        }
-#endif
-
 #if UNITY_STANDALONE || UNITY_EDITOR
         private void Update()
         {

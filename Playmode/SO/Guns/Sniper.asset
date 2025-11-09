@@ -18,7 +18,7 @@ MonoBehaviour:
   BulletsThatAreUsed: 1
   Damage: 35
   HoldToShoot: 0
-  Delay: 1.42
+  Delay: 0.98
   ShootBackwards: 0
   RecoilSpeed: 6
   RecoilRot: {x: -0.03, y: 0, z: 35}

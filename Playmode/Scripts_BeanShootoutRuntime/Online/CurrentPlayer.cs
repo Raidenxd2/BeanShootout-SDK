@@ -15,7 +15,7 @@ namespace KillItMyself.Runtime
         {
             if (IsOwner)
             {
-                Debug.Log("(CurrentPlayer/Owner) Setting instance of CurrentPlayer.instance to this instance");
+                BeanLogger.Log("(Owner) Setting instance of CurrentPlayer.instance to this instance", this);
                 instance = this;
             }
         }

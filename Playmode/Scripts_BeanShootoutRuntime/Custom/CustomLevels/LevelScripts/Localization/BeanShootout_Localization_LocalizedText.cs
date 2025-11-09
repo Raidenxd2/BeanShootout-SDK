@@ -62,7 +62,7 @@ namespace KillItMyself.Runtime
 
         private void UpdateText(string lang, Text legacyText, TMP_Text TextMeshProText, int KeyIndex)
         {
-            if (legacyText != null)
+            if (legacyText)
             {
                 switch (lang)
                 {

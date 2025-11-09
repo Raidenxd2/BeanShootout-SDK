@@ -26,27 +26,21 @@ namespace KillItMyself.Runtime
 
         [SerializeField] private TMP_Text CodeText;
 
-        [SerializeField] private PlayerMovement playerMovement;
-        [SerializeField] private BulletManager bulletManager;
-        [SerializeField] private PlayerCam playerCam;
-
-#if KILLITMYSELF_FULL
-        [SerializeField] private AchievementSO UnderTheSurfaceAchievement;
-#endif
-
         private int One;
         private int Two;
         private int Three;
         private int Four;
         private int Five;
 
+        [SerializeField] private PlayerMovement playerMovement;
+
         private void Start()
         {
 #if KILLITMYSELF_FULL
-            // if (LorePartOneVariables.OverrideCodeFound)
-            // {
+            if (LorePartOneVariables.OverrideCodeFound)
+            {
                 CodeText.text = LorePartOneVariables.OverrideCode.ToString();
-            // }
+            }
 #endif
 
             if (playerControls.devices[0].displayName.Contains("Xbox"))
@@ -130,19 +124,22 @@ namespace KillItMyself.Runtime
             {
                 InputButtonAsync().Forget();
             }
+
+            if (code != inputCode)
+            {
+                BeanLogger.Log("Exploding ship cause no", this);
+            }
 #endif
         }
 
 #if KILLITMYSELF_FULL
         private async UniTaskVoid InputButtonAsync()
         {
-            AchievementManager.instance.GrantAchievement(UnderTheSurfaceAchievement);
-            SaveManager.instance.SaveCurrent();
-
             gameObject.SetActive(false);
-            playerMovement.canMove = false;
-            bulletManager.CannotShootNoMatterWhat = true;
-            playerCam.canMoveCamera = false;
+            for (int i = 0; i < PlayersJoined.instance.Players.Count; i++)
+            {
+                PlayersJoined.instance.Players[i].GetComponent<PlayerMovement>().PreventPlayerFromDoingAnything();
+            }
 
             Cursor.lockState = CursorLockMode.Locked;
 
@@ -151,8 +148,8 @@ namespace KillItMyself.Runtime
             SavingRootObject.instance.LoadingAssetRoot.SetActive(true);
             await UniTask.WaitForEndOfFrame();
 
-            await SceneManager.LoadSceneAsync(AddressableReferences.S_EnterCodeCutsceneShip, LoadSceneMode.Additive);
-            SceneManager.SetActiveScene(SceneManager.GetSceneByName(AddressableReferences.S_EnterCodeCutsceneShip));
+            await SceneManager.LoadSceneAsync(SceneNames.S_EnterCodeCutsceneShip, LoadSceneMode.Additive);
+            SceneManager.SetActiveScene(SceneManager.GetSceneByName(SceneNames.S_EnterCodeCutsceneShip));
 
             await UniTask.WaitForEndOfFrame();
             CutsceneCamera.instance.playerControls = playerControls;
@@ -169,8 +166,6 @@ namespace KillItMyself.Runtime
             {
                 Cursor.lockState = CursorLockMode.None;
             }
-
-
         }
     }
 }

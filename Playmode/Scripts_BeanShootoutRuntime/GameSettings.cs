@@ -1,4 +1,5 @@
 #if KILLITMYSELF_FULL
+using System;
 using UnityCommandLineParser;
 #endif
 using UnityEngine;
@@ -25,6 +26,22 @@ namespace KillItMyself.Runtime
 #endif
         public static bool FullscreenNoOtherPlayers = false;
 
+#if KILLITMYSELF_FULL
+        [CommandLineArgument("gs_sa", "Sets 'Share ammo between all players' (Game Settings)")]
+#endif
+        public static bool SharedAmmo = false;
+
+        public static PlayerMovementSettingsSO MovementSettings;
+        public static int MovementSettingsIndex;
+
+#if KILLITMYSELF_FULL
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void CheckArg()
+        {
+            // if (Environment.CommandLine.Contains("-"))
+        }
+#endif
+
 #if UNITY_EDITOR
         [RuntimeInitializeOnLoadMethod]
         public static void ResetValues()
@@ -33,6 +50,8 @@ namespace KillItMyself.Runtime
             ShowMinimap = true;
             MaxPlayers = 4;
             FullscreenNoOtherPlayers = false;
+            SharedAmmo = false;
+            MovementSettings = null;
         }
 #endif
     }

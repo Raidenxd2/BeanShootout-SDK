@@ -45,7 +45,7 @@ namespace KillItMyself.Runtime
 
         private LayerMask OldLayerMask;
 
-        public NetworkVariable<int> OnlineHealth = new(100, NetworkVariableReadPermission.Owner, NetworkVariableWritePermission.Owner);
+        public NetworkVariable<int> OnlineHealth = new(100, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
         private bool DoBusDamage = true;
 
@@ -73,11 +73,6 @@ namespace KillItMyself.Runtime
             {
                 return;
             }
-
-            // if (OnlineManager.instance.InOnlineGame)
-            // {
-            //     playerControls = GlobalPlayerInput.instance.playerInput;
-            // }
 
             playerRb = playerMovement.GetComponent<Rigidbody>();
 
@@ -196,7 +191,7 @@ namespace KillItMyself.Runtime
         [Rpc(SendTo.Owner)]
         public void DamageRpc(int damageVal)
         {
-            Debug.Log("damage rpc");
+            BeanLogger.Log("damage rpc", this);
             OnlineHealth.Value -= damageVal;
         }
 
@@ -235,15 +230,14 @@ namespace KillItMyself.Runtime
                 Health = 100;
             }
 
+            playerMovement.LetPlayerDoAnything();
+
             if (playerInput.devices[0].displayName.Contains("Mouse") || playerInput.devices[0].displayName.Contains("Keyboard"))
             {
                 Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
             }
 
             Dead = false;
-
-            PlayerCamera.GetComponent<PlayerCam>().enabled = true;
 
             PlayerCamera.GetComponent<Camera>().cullingMask = OldLayerMask;
 
@@ -253,7 +247,7 @@ namespace KillItMyself.Runtime
             StopGoingUp = false;
             CanRespawn = false;
 
-            if (SpawnManager.instance != null)
+            if (SpawnManager.instance)
             {
                 playerRb.position = SpawnManager.instance.SpawnPoints[Random.Range(0, SpawnManager.instance.SpawnPoints.Length)].position;
             }
@@ -272,7 +266,7 @@ namespace KillItMyself.Runtime
 
             BetterPrefs.SetInt("Kills", BetterPrefs.GetInt("Kills", 0) + 1);
 
-            if (BetterPrefs.GetInt("Kills", 0) >= 50 && BetterPrefs.GetBool("Genocide", false) == false)
+            if (BetterPrefs.GetInt("Kills", 0) >= 50 && !BetterPrefs.GetBool("Genocide", false))
             {
                 AchievementManager.instance.GrantAchievement(GenocideAchievement);
                 BetterPrefs.Save();
@@ -285,7 +279,7 @@ namespace KillItMyself.Runtime
             FadeAnim.Play("PlayerYouWEODied");
 
             yield return new WaitForSeconds(1.5f);
-            PlayerCamera.GetComponent<PlayerCam>().enabled = false;
+            playerMovement.PreventPlayerFromDoingAnything();
             
             OldLayerMask = PlayerCamera.GetComponent<Camera>().cullingMask;
             PlayerCamera.GetComponent<Camera>().cullingMask = layerMask;
@@ -298,7 +292,6 @@ namespace KillItMyself.Runtime
             if (playerInput.devices[0].displayName.Contains("Mouse") || playerInput.devices[0].displayName.Contains("Keyboard"))
             {
                 Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
             }
         }
 

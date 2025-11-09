@@ -97,10 +97,12 @@ namespace KillItMyself.Runtime
             playerRenderer.materials[1].color = colors[PlayerVisorColorCurrentIndex];
             playerLocationRenderer.material.color = colors[PlayerColorCurrentIndex];
 
+            JoinGameRpc(currentIndex, PlayerColorCurrentIndex, PlayerVisorColorCurrentIndex);
+
             PlayerStartUIRoot.SetActive(false);
             GetComponent<PlayerStartUI>().enabled = false;
 
-            if (SpawnManager.instance != null)
+            if (SpawnManager.instance)
             {
                 GetComponent<Rigidbody>().position = SpawnManager.instance.SpawnPoints[Random.Range(0, SpawnManager.instance.SpawnPoints.Length)].position;
             }
@@ -108,6 +110,17 @@ namespace KillItMyself.Runtime
             {
                 GetComponent<Rigidbody>().position = Vector3.zero;
             }
+        }
+
+        [Rpc(SendTo.NotOwner)]
+        public void JoinGameRpc(int index, int playerColorIndex, int playerVisorColorIndex)
+        {
+            bullet.gun = guns[index];
+            bullet.BulletManagerInit();
+
+            playerRenderer.materials[0].color = colors[playerColorIndex];
+            playerRenderer.materials[1].color = colors[playerVisorColorIndex];
+            playerLocationRenderer.material.color = colors[playerColorIndex];
         }
 
         public void GunUp()

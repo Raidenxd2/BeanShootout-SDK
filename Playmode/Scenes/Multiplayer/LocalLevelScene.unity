@@ -641,6 +641,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1333016714}
+  - component: {fileID: 1333016715}
   m_Layer: 0
   m_Name: PlayerSpawn
   m_TagString: Untagged
@@ -665,6 +666,15 @@ Transform:
   - {fileID: 469241711}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1652712579 &1333016715
+MultiplayerRolesData:
+  m_ObjectHideFlags: 2
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333016713}
+  m_GameObjectRolesMask: 1
+  m_ComponentsRolesMasks: []
 --- !u!1001 &5284708589897386045
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -731,8 +741,27 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1822403271924274130, guid: a36a6efde5d053347b9aafa3672d4949,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5284708589897386047}
   m_SourcePrefab: {fileID: 100100000, guid: a36a6efde5d053347b9aafa3672d4949, type: 3}
+--- !u!1 &5284708589897386046 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1822403271924274130, guid: a36a6efde5d053347b9aafa3672d4949,
+    type: 3}
+  m_PrefabInstance: {fileID: 5284708589897386045}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1652712579 &5284708589897386047
+MultiplayerRolesData:
+  m_ObjectHideFlags: 2
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5284708589897386046}
+  m_GameObjectRolesMask: 1
+  m_ComponentsRolesMasks: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -46,9 +46,6 @@ namespace KillItMyself.Runtime
                 playerHasJoined = true;
             }
 
-            // Cursor.lockState = CursorLockMode.Locked;
-            // Cursor.visible = false;
-
             if (playerControls.currentControlScheme == "Gamepad")
             {
                 sensX = 10 * BetterPrefs.GetInt("ControllerSettings_Sensitivity", 10);

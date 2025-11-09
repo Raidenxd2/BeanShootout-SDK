@@ -19,16 +19,16 @@ namespace KillItMyself.Runtime
             switch (AudioType)
             {
                 case CustomLevelAudioType.Other:
-                    GetComponent<AudioSource>().outputAudioMixerGroup = ResourcesReferences.instance.GameAudioMixer.FindMatchingGroups("Master")[0];
+                    GetComponent<AudioSource>().outputAudioMixerGroup = ResourcesReferences.GameAudioMixer.FindMatchingGroups("Master")[0];
                     break;
                 case CustomLevelAudioType.Music:
-                    GetComponent<AudioSource>().outputAudioMixerGroup = ResourcesReferences.instance.GameAudioMixer.FindMatchingGroups("Music")[0];
+                    GetComponent<AudioSource>().outputAudioMixerGroup = ResourcesReferences.GameAudioMixer.FindMatchingGroups("Music")[0];
                     break;
                 case CustomLevelAudioType.Sound:
-                    GetComponent<AudioSource>().outputAudioMixerGroup = ResourcesReferences.instance.GameAudioMixer.FindMatchingGroups("SFX")[0];
+                    GetComponent<AudioSource>().outputAudioMixerGroup = ResourcesReferences.GameAudioMixer.FindMatchingGroups("SFX")[0];
                     break;
                 case CustomLevelAudioType.Ambience:
-                    GetComponent<AudioSource>().outputAudioMixerGroup = ResourcesReferences.instance.GameAudioMixer.FindMatchingGroups("Ambience")[0];
+                    GetComponent<AudioSource>().outputAudioMixerGroup = ResourcesReferences.GameAudioMixer.FindMatchingGroups("Ambience")[0];
                     break;
             }
         }

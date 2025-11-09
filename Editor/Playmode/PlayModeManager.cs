@@ -42,6 +42,11 @@ public class PlayModeManager : Editor
 
         BetterPrefs.Load(savePath);
 
+        // Set GameSettings
+        GameSettings.FullscreenNoOtherPlayers = true;
+        GameSettings.ShowMinimap = false;
+        GameSettings.MovementSettings = AssetDatabase.LoadMainAssetAtPath("Packages/com.onewing.beanshootout-customlevels/Playmode/SO/MovementSettings/DefaultMovementSettings.asset") as PlayerMovementSettingsSO;
+
         Instantiate(AssetDatabase.LoadMainAssetAtPath("Packages/com.onewing.beanshootout-customlevels/Playmode/Prefabs/Core/DDOLMinimal.prefab") as GameObject);
 
         EditorSceneManager.LoadSceneInPlayMode("Packages/com.onewing.beanshootout-customlevels/Playmode/Scenes/Multiplayer/LocalLevelScene.unity", new(UnityEngine.SceneManagement.LoadSceneMode.Additive)); ;
