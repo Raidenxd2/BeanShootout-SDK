@@ -38,6 +38,7 @@ public class Build : EditorWindow
         {
             BeanShootoutConfigSO config = AssetDatabase.LoadAssetAtPath<BeanShootoutConfigSO>("Assets/BeanShootoutConfig.asset");
 
+            // If the game path specified isn't valid or if the build isn't valid then fail.
             if (string.IsNullOrEmpty(config.GamePath))
             {
                 EditorUtility.DisplayDialog("Error", "Please set a Game Path in the config!", "OK");
@@ -56,14 +57,16 @@ public class Build : EditorWindow
 
             Debug.Log("(BeanShootout) Running level");
 
-            EditorUtility.DisplayProgressBar("The Great Bean Shootout Custom Level Package", "Running level...", 0);
+            EditorUtility.DisplayProgressBar(Constants.PackageName, "Running level...", 0);
 
+            // Gets the PersistentDataPath of Bean Shootout to copy the level bundles into. (AppData\LocalLow\OneWing\The Great Bean Shootout\Mods\LevelLocalBuild)
             string LevelLocalBuildFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow", "OneWing", "The Great Bean Shootout", "Mods", "LevelLocalBuild") + "\\";
             Debug.Log("(BeanShootout) LevelLocalBuildFolder: "+ LevelLocalBuildFolder);
 
             File.Copy("Assets/Levels/" + SceneName + "/WindowsBuild/level_data.bundle", LevelLocalBuildFolder + "level_data.bundle", true);
             File.Copy("Assets/Levels/" + SceneName + "/WindowsBuild/level_info.bundle", LevelLocalBuildFolder + "level_info.bundle", true);
 
+            // Starts BeanShootout.exe with arguments depending on the settings
             Process GameProcess = new();
             GameProcess.StartInfo.FileName = config.GamePath + "/BeanShootout.exe";
             string args = "";
@@ -111,10 +114,10 @@ public class Build : EditorWindow
 
         if (GUILayout.Button("Cleanup build folders for all levels"))
         {
-            if (EditorUtility.DisplayDialog("Question", "Are you sure you want to cleanup build folders for all levels?\nThis will delete all built files.", "Yes", "No"))
+            if (EditorUtility.DisplayDialog(Constants.PackageName, "Are you sure you want to cleanup build folders for all levels?\nThis will delete all built files.", "Yes", "No"))
             {
                 Debug.Log("(BeanShootout) Cleaning build folders");
-                EditorUtility.DisplayProgressBar("The Great Bean Shootout Custom Level Package", "Cleaning build folders...", 0);
+                EditorUtility.DisplayProgressBar(Constants.PackageName, "Cleaning build folders...", 0);
 
                 string[] levelDirs = Directory.GetDirectories("Assets/Levels");
                 foreach (var item in levelDirs)
@@ -149,10 +152,10 @@ public class Build : EditorWindow
 
         if (GUILayout.Button("Cleanup build folders for the current level"))
         {
-            if (EditorUtility.DisplayDialog("Question", "Are you sure you want to cleanup build folders for the current level?\nThis will delete all built files.", "Yes", "No"))
+            if (EditorUtility.DisplayDialog(Constants.PackageName, "Are you sure you want to cleanup build folders for the current level?\nThis will delete all built files.", "Yes", "No"))
             {
                 Debug.Log("(BeanShootout) Cleaning build folders");
-                EditorUtility.DisplayProgressBar("The Great Bean Shootout Custom Level Package", "Cleaning build folders...", 0);
+                EditorUtility.DisplayProgressBar(Constants.PackageName, "Cleaning build folders...", 0);
 
                 string item = "Assets/Levels/" + EditorSceneManager.GetActiveScene().name;
 
@@ -186,14 +189,16 @@ public class Build : EditorWindow
 
     private void BuildLevel(CompressionType ct, BuildTarget target, string BuildPathName)
     {
-        EditorUtility.DisplayProgressBar("The Great Bean Shootout Custom Level Package", "Preparing build...", 0);
+        EditorUtility.DisplayProgressBar(Constants.PackageName, "Preparing build...", 0);
 
+        // Makes sure that the correct GraphicsAPIs are set
         if (target == BuildTarget.StandaloneWindows || target == BuildTarget.StandaloneWindows64)
         {
             GraphicsDeviceType[] requiredGDT = new GraphicsDeviceType[] {GraphicsDeviceType.Direct3D11, GraphicsDeviceType.Direct3D12, GraphicsDeviceType.Vulkan};
             if (!PlayerSettings.GetGraphicsAPIs(BuildTarget.StandaloneWindows64).Contains(GraphicsDeviceType.Direct3D11) || !PlayerSettings.GetGraphicsAPIs(BuildTarget.StandaloneWindows64).Contains(GraphicsDeviceType.Direct3D12) || !PlayerSettings.GetGraphicsAPIs(BuildTarget.StandaloneWindows64).Contains(GraphicsDeviceType.Vulkan))
             {
-                if (EditorUtility.DisplayDialog("The Great Bean Shootout Custom Level Package", "The GraphicsAPI setting for Windows are not set to the required values (Direct3D 11, Direct3D 12, and Vulkan). You must support these GraphicsAPIs. Do you want to configure them automatically?", "Yes", "No"))
+                // The build requires the GraphicsAPIs to be set to the same as Bean Shootout, otherwise levels may be incompatible with certain GraphicsAPIs or systems
+                if (EditorUtility.DisplayDialog(Constants.PackageName, "The GraphicsAPI setting for Windows are not set to the required values (Direct3D 11, Direct3D 12, and Vulkan). You must support these GraphicsAPIs. Do you want to configure them automatically?", "Yes", "No"))
                 {
                     PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows, false);
                     PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
@@ -204,7 +209,7 @@ public class Build : EditorWindow
                 {
                     EditorUtility.ClearProgressBar();
 
-                    Debug.LogError("(Build) Build Failed: The GraphicsAPI setting for Windows are not set to the required values.");
+                    Debug.LogError("Build Failed: The GraphicsAPI setting for Windows are not set to the required values.");
 
                     return;
                 }
@@ -218,6 +223,7 @@ public class Build : EditorWindow
             Directory.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName, true);
         }
 
+        // Sets the AssetBundle names of the level image and name
         if (AssetImporter.GetAtPath("Assets/Levels/" + SceneName + "/image.png").assetBundleName != SceneName.ToLower() + "_info")
         {
             AssetImporter.GetAtPath("Assets/Levels/" + SceneName + "/image.png").assetBundleName = SceneName.ToLower() + "_info";
@@ -229,8 +235,9 @@ public class Build : EditorWindow
 
         AssetBundleUtils.BuildAssetBundlesByName(new[] { SceneName.ToLower() + "_ab", SceneName.ToLower() + "_info" }, "Assets/Levels/" + SceneName + "/" + BuildPathName, target, ct);
 
-        EditorUtility.DisplayProgressBar("The Great Bean Shootout Custom Level Package", "Finishing build...", 0);
+        EditorUtility.DisplayProgressBar(Constants.PackageName, "Finishing build...", 0);
 
+        // Copys the built AssetBundles with names the game uses
         File.Move("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName.ToLower() + "_ab", "Assets/Levels/" + SceneName + "/level_data.bundle");
         File.Move("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName.ToLower() + "_info", "Assets/Levels/" + SceneName + "/level_info.bundle");
 
@@ -245,7 +252,7 @@ public class Build : EditorWindow
 
         EditorUtility.ClearProgressBar();
 
-        EditorUtility.DisplayDialog("Message", "Build created under Assets/Levels/" + SceneName + "/" + BuildPathName + "/", "OK");
+        EditorUtility.DisplayDialog(Constants.PackageName, "Build created under Assets/Levels/" + SceneName + "/" + BuildPathName + "/", "OK");
     }
 }
 

@@ -5,20 +5,20 @@ using UnityEngine;
 
 public class GitPackageInstaller : Editor
 {
-    public const string SharedShadersPrefName = "BeanShootoutCLP_DontShowPackageNotInstalledForSharedShaders";
 
     [InitializeOnLoadMethod]
     public static void InstallPackages()
     {
-        if (!CheckPackageInstalled("com.raiden.sharedshaders") && !EditorPrefs.GetBool(SharedShadersPrefName, false))
+        // If SharedShaders isn't installed, ask the user to install it
+        if (!CheckPackageInstalled("com.raiden.sharedshaders") && !EditorPrefs.GetBool(Constants.SharedShadersPrefName, false))
         {
-            if (EditorUtility.DisplayDialog("The Great Bean Shootout Custom Level Package", "The package SharedShaders (com.raiden.sharedshaders) is not installed. This package is required for playmode functionality. Would you like to install it?\n\nThis message will only appear once for this machine if you choose no.", "Yes", "No"))
+            if (EditorUtility.DisplayDialog(Constants.PackageName, "The package SharedShaders (com.raiden.sharedshaders) is not installed. This package is required for playmode functionality. Would you like to install it?\n\nThis message will only appear once for this machine if you choose no.", "Yes", "No"))
             {
                 AddPackage("com.raiden.sharedshaders", "https://github.com/Raidenxd2/SharedShaders.git#1.1.0");
             }
             else
             {
-                EditorPrefs.SetBool(SharedShadersPrefName, true);
+                EditorPrefs.SetBool(Constants.SharedShadersPrefName, true);
             }
         }
     }
@@ -47,6 +47,6 @@ public class GitPackageInstaller : Editor
     [MenuItem("Bean Shootout/Dev/Reset BeanShootoutCLP values")]
     public static void ResetBeanShootoutCLPValues()
     {
-        EditorPrefs.SetBool(SharedShadersPrefName, false);
+        EditorPrefs.SetBool(Constants.SharedShadersPrefName, false);
     }
 }

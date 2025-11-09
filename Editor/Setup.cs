@@ -28,7 +28,7 @@ public class Setup : EditorWindow
 
         if (!newSystemBackendsEnabled)
         {
-            if (EditorUtility.DisplayDialog("The Great Bean Shootout Custom Level Package", "This project is currently configured to use the legacy Input Manager, which is not supported by Bean Shootout. Do you want to change the active input handling to the Input System? This will restart the Unity Editor.", "Yes", "No"))
+            if (EditorUtility.DisplayDialog(Constants.PackageName, "This project is currently configured to use the legacy Input Manager, which is not supported by Bean Shootout. Do you want to change the active input handling to the Input System? This will restart the Unity Editor.", "Yes", "No"))
             {
                 EnableNewBackends();
             }
@@ -36,7 +36,7 @@ public class Setup : EditorWindow
 
         if (newSystemBackendsEnabled && oldSystemBackendsEnabled)
         {
-            if (EditorUtility.DisplayDialog("The Great Bean Shootout Custom Level Package", "This project is currently configured to use both the legacy Input Manager and the new Input System. The legacy Input Manager is not supported by Bean Shootout. Do you want to change the active input handling to be only the new Input System? this will restart the Unity Editor.", "Yes", "No"))
+            if (EditorUtility.DisplayDialog(Constants.PackageName, "This project is currently configured to use both the legacy Input Manager and the new Input System. The legacy Input Manager is not supported by Bean Shootout. Do you want to change the active input handling to be only the new Input System? this will restart the Unity Editor.", "Yes", "No"))
             {
                 EnableNewBackends();
             }
@@ -67,9 +67,10 @@ public class Setup : EditorWindow
 
         if (GUILayout.Button("Setup/Update"))
         {
-            if (EditorUtility.DisplayDialog("Question", "Are you sure you want to setup your project for this package? WARNING: This will overwrite most Project Settings and the Editor will restart.", "Yes", "No"))
+            // Copys certain Project Settings from the package to the project's ProjectSettings folder
+            if (EditorUtility.DisplayDialog(Constants.PackageName, "Are you sure you want to setup your project for this package? WARNING: This will overwrite most Project Settings and the Editor will restart.", "Yes", "No"))
             {
-                EditorUtility.DisplayProgressBar("The Great Bean Shootout Custom Level Package", "Setting up...", 0);
+                EditorUtility.DisplayProgressBar(Constants.PackageName, "Setting up...", 0);
                 
                 Directory.CreateDirectory("Assets/Levels");
 
@@ -83,7 +84,7 @@ public class Setup : EditorWindow
                 File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/UniversalRenderPipelineGlobalSettings.asset~", Application.dataPath + "/UniversalRenderPipelineGlobalSettings.asset", true);
                 File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/UniversalRenderPipelineGlobalSettings.asset.meta~", Application.dataPath + "/UniversalRenderPipelineGlobalSettings.asset.meta", true);
 
-                EditorUtility.DisplayDialog("Message", "If a dialog says something about the Input System, press Yes on it.", "OK");
+                EditorUtility.DisplayDialog(Constants.PackageName, "If a dialog says something about the Input System, press Yes on it.", "OK");
 
                 File.WriteAllText(Application.dataPath + "/DO_NOT_DELETE_THIS_BeanShootout", "");
 
@@ -92,6 +93,7 @@ public class Setup : EditorWindow
         }
     }
 
+    // Creates an config if it doesn't exist
     public static void CreateConfig()
     {
         Debug.Log("(BeanShootout) Creating config");

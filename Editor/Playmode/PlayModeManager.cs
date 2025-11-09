@@ -26,7 +26,7 @@ public class PlayModeManager : Editor
         EditorSettings.enterPlayModeOptionsEnabled = true;
         EditorSettings.enterPlayModeOptions = EnterPlayModeOptions.DisableDomainReload;
 
-        // Wait 100 ms then enter playmode then wait another 100 ms and load the prefab
+        // Wait 25 ms then enter playmode then wait another 25 ms and load the prefab
         await Task.Delay(25);
 
         EditorApplication.EnterPlaymode();
@@ -37,7 +37,7 @@ public class PlayModeManager : Editor
         string savePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow") + "/OneWing/The Great Bean Shootout/Saves/Default.bean";
         if (!File.Exists(savePath))
         {
-            EditorUtility.DisplayDialog("The Great Bean Shootout Custom Level Package", "Warning: The default save file doesn't exist at " + savePath + ". A blank save file will be used instead.", "OK");
+            EditorUtility.DisplayDialog(Constants.PackageName, "Warning: The default save file doesn't exist at " + savePath + ". A blank save file will be used instead.", "OK");
         }
 
         BetterPrefs.Load(savePath);

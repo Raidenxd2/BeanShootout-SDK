@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class BeanShootoutConfig
 {
+    // Creates the config if it doesn't exist and selects the config.
     [MenuItem("Bean Shootout/_Config")]
     public static void ViewConfigAsset()
     {

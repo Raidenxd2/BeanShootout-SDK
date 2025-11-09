@@ -20,6 +20,7 @@ public class LevelThumbnail : EditorWindow
     {
         if (!CreatingThumbnail)
         {
+            // Spawns the ThumbnailCamera object and sets the Game View resoultion to 1512,926
             if (GUILayout.Button("Start creating level thumbnail..."))
             {
                 Instantiate(AssetDatabase.LoadMainAssetAtPath("Packages/com.onewing.beanshootout-customlevels/Core/Prefabs/ThumbnailCamera.prefab") as GameObject);
@@ -45,17 +46,18 @@ public class LevelThumbnail : EditorWindow
         }
     }
 
+    // Takes a screenshot of the camera and saves it as the level image
     private async void SaveScreenshot()
     {
         string sceneName = EditorSceneManager.GetActiveScene().name;
 
         ScreenCapture.CaptureScreenshot("Assets/Levels/" + sceneName + "/image.png");
 
-        EditorUtility.DisplayDialog("Message", "Created thumbnail under 'Assets/Levels/" + sceneName + "/image.png'", "OK");
+        EditorUtility.DisplayDialog(Constants.PackageName, "Created thumbnail under 'Assets/Levels/" + sceneName + "/image.png'", "OK");
         
         await Task.Delay(100);
 
-        DestroyImmediate(GameObject.FindGameObjectWithTag("CustomLevelPackage/ThumbnailCamera"));
+        DestroyImmediate(GameObject.Find("TumbnailCamera"));
         AssetDatabase.Refresh();
     }
 

@@ -1,7 +1,7 @@
 {
   "name": "com.onewing.beanshootout-customlevels",
   "version": "0.7.1",
-  "displayName": "The Great Bean Shootout Custom Levels Package",
+  "displayName": "The Great Bean Shootout SDK",
   "description": "The Great Bean Shootout Custom Levels Package\n\nGame Version: 1.0.0 (unreleased)\n\nGit dependencies:\nShared Shaders: https://github.com/Raidenxd2/SharedShaders",
   "author": {
     "name": "OneWing"

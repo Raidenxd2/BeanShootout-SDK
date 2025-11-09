@@ -40,7 +40,7 @@ public class Publishing : EditorWindow
 
     private void MakeZip(string BuildPathName, string ZipName)
     {
-        EditorUtility.DisplayProgressBar("Bean Shootout Custom Level Package", "Creating Zip file...", 0);
+        EditorUtility.DisplayProgressBar(Constants.PackageName, "Creating Zip file...", 0);
 
         string SceneName = EditorSceneManager.GetActiveScene().name;
 

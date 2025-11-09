@@ -18,6 +18,7 @@ public class LevelCreator : EditorWindow
     {
         LevelName = EditorGUILayout.TextField("Level Name", LevelName);
 
+        // Creates the level folders, copys the default level Scene and image, and creates the name file
         if (GUILayout.Button("Create Level"))
         {
             Debug.Log("(BeanShootout) Creating level");
