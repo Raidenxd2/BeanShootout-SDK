@@ -18,6 +18,7 @@ public class BeanShootoutConfigSO : ScriptableObject
     public bool ShowMinimap = true;
     public int MaxAmmo = 50;
     public int MaxPlayers = 4;
+    public bool SharedAmmo;
 
     public bool IsValid;
     public string ValidReason;
@@ -37,6 +38,7 @@ public class BeanShootoutConfigSO_Inspector : Editor
     private SerializedProperty ShowMinimap;
     private SerializedProperty MaxAmmo;
     private SerializedProperty MaxPlayers;
+    private SerializedProperty SharedAmmo;
 
     private void OnEnable()
     {
@@ -51,6 +53,7 @@ public class BeanShootoutConfigSO_Inspector : Editor
         ShowMinimap = serializedObject.FindProperty("ShowMinimap");
         MaxAmmo = serializedObject.FindProperty("MaxAmmo");
         MaxPlayers = serializedObject.FindProperty("MaxPlayers");
+        SharedAmmo = serializedObject.FindProperty("SharedAmmo");
     }
 
     public override void OnInspectorGUI()
@@ -137,6 +140,7 @@ public class BeanShootoutConfigSO_Inspector : Editor
         EditorGUILayout.PropertyField(ShowMinimap);
         EditorGUILayout.PropertyField(MaxAmmo);
         EditorGUILayout.PropertyField(MaxPlayers);
+        EditorGUILayout.PropertyField(SharedAmmo);
 
         #endregion
         

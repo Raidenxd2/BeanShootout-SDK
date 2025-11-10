@@ -82,7 +82,7 @@ public class Build : EditorWindow
             {
                 args += " -verbose";
             }
-            args += " -loadlevellocalbuild -gs_fnop " + config.FullscreenWhenTheresNoOtherPlayers + " -gs_sm " + config.ShowMinimap + " -gs_ma " + config.MaxAmmo + " -ga_mp " + config.MaxPlayers;
+            args += " -loadlevellocalbuild -gs_fnop " + config.FullscreenWhenTheresNoOtherPlayers + " -gs_sm " + config.ShowMinimap + " -gs_ma " + config.MaxAmmo + " -ga_mp " + config.MaxPlayers + " -gs_sa " + config.SharedAmmo;
             GameProcess.StartInfo.Arguments = args;
             GameProcess.Start();
 
