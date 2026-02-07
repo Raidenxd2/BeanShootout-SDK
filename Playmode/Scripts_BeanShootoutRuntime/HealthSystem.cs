@@ -49,7 +49,6 @@ namespace KillItMyself.Runtime
 
         private bool DoBusDamage = true;
 
-        private bool DebugMode;
         private bool GodMode;
 
 #if KILLITMYSELF_FULL
@@ -59,11 +58,6 @@ namespace KillItMyself.Runtime
 
         private void Awake()
         {
-            if (Application.isEditor)
-            {
-                DebugMode = true;
-            }
-
             playerMovement = GetComponent<PlayerMovement>();
         }
 
@@ -96,6 +90,8 @@ namespace KillItMyself.Runtime
 
                     if (OnlineHealth.Value <= 0)
                     {
+                        playerMovement.bulletManager.CannotShootNoMatterWhat = true;
+                        
                         if (!Dead)
                         {
                             StartCoroutine(DeadWait());
@@ -107,7 +103,7 @@ namespace KillItMyself.Runtime
 
                         Dead = true;
 
-                        if (StopGoingUp == false)
+                        if (!StopGoingUp)
                         {
                             playerRb.linearVelocity = Vector3.zero;
 
@@ -144,7 +140,7 @@ namespace KillItMyself.Runtime
 
                     Dead = true;
 
-                    if (playerControls.actions["Jump"].WasPressedThisFrame() && CanRespawn)
+                    if (playerMovement.JumpInput.WasPressedThisFrame() && CanRespawn)
                     {
                         ReAlive();
                     }
@@ -168,12 +164,7 @@ namespace KillItMyself.Runtime
                     StartCoroutine(DamageEffect());
                 }
             }
-            
-            if (!DebugMode)
-            {
-                return;
-            }
-
+#if UNITY_EDITOR || KILLITMYSELF_DEBUG
             if (Keyboard.current.semicolonKey.wasPressedThisFrame)
             {
                 GodMode = !GodMode;
@@ -186,13 +177,41 @@ namespace KillItMyself.Runtime
                     Health = 100;
                 }
             }
+#endif
         }
 
         [Rpc(SendTo.Owner)]
-        public void DamageRpc(int damageVal)
+        public void DamageRpc(int damageVal, ulong fromId)
         {
-            BeanLogger.Log("damage rpc", this);
             OnlineHealth.Value -= damageVal;
+
+            if (OnlineHealth.Value <= 0)
+            {
+                KillRpc(RpcTarget.Single(fromId, RpcTargetUse.Temp));
+            }
+        }
+
+        [Rpc(SendTo.SpecifiedInParams)]
+        private void KillRpc(RpcParams rpcParams)
+        {
+            if (CommandLineArgs.VerboseLoggingEnabled)
+            {
+                BeanLogger.Log("Killed player", this);
+            }
+            
+#if KILLITMYSELF_FULL
+            AchievementManager.instance.GrantAchievement(KillABeanAchievement);
+
+            BetterPrefs.SetInt("Kills", BetterPrefs.GetInt("Kills", 0) + 1);
+
+            if (BetterPrefs.GetInt("Kills", 0) >= 50 && !BetterPrefs.GetBool("Genocide", false))
+            {
+                AchievementManager.instance.GrantAchievement(GenocideAchievement);
+                BetterPrefs.Save();
+            }
+            
+            NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerBaseRootOnlineUsername>().Kills.Value++;
+#endif
         }
 
         public void BusDamage()
@@ -221,6 +240,8 @@ namespace KillItMyself.Runtime
 
         public void ReAlive()
         {
+            Dead = false;
+            
             if (OnlineManager.instance.InOnlineGame)
             {
                 OnlineHealth.Value = 100;
@@ -237,7 +258,7 @@ namespace KillItMyself.Runtime
                 Cursor.lockState = CursorLockMode.Locked;
             }
 
-            Dead = false;
+            PauseManager.instance.prevCursorLock = CursorLockMode.Locked;
 
             PlayerCamera.GetComponent<Camera>().cullingMask = OldLayerMask;
 
@@ -262,14 +283,17 @@ namespace KillItMyself.Runtime
         private IEnumerator DeadWait()
         {
 #if KILLITMYSELF_FULL
-            AchievementManager.instance.GrantAchievement(KillABeanAchievement);
-
-            BetterPrefs.SetInt("Kills", BetterPrefs.GetInt("Kills", 0) + 1);
-
-            if (BetterPrefs.GetInt("Kills", 0) >= 50 && !BetterPrefs.GetBool("Genocide", false))
+            if (!OnlineManager.instance.InOnlineGame)
             {
-                AchievementManager.instance.GrantAchievement(GenocideAchievement);
-                BetterPrefs.Save();
+                AchievementManager.instance.GrantAchievement(KillABeanAchievement);
+
+                BetterPrefs.SetInt("Kills", BetterPrefs.GetInt("Kills", 0) + 1);
+
+                if (BetterPrefs.GetInt("Kills", 0) >= 50 && !BetterPrefs.GetBool("Genocide", false))
+                {
+                    AchievementManager.instance.GrantAchievement(GenocideAchievement);
+                    BetterPrefs.Save();
+                }
             }
 #endif
 
@@ -280,6 +304,8 @@ namespace KillItMyself.Runtime
 
             yield return new WaitForSeconds(1.5f);
             playerMovement.PreventPlayerFromDoingAnything();
+
+            PauseManager.instance.prevCursorLock = CursorLockMode.None;
             
             OldLayerMask = PlayerCamera.GetComponent<Camera>().cullingMask;
             PlayerCamera.GetComponent<Camera>().cullingMask = layerMask;

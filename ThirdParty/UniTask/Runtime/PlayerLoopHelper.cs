@@ -22,16 +22,21 @@ namespace Cysharp.Threading.Tasks
 {
     public static class UniTaskLoopRunners
     {
+#if !KILLITMYSELF_FULL
         public struct UniTaskLoopRunnerInitialization { };
         public struct UniTaskLoopRunnerEarlyUpdate { };
         public struct UniTaskLoopRunnerFixedUpdate { };
         public struct UniTaskLoopRunnerPreUpdate { };
+#endif
         public struct UniTaskLoopRunnerUpdate { };
+#if !KILLITMYSELF_FULL
         public struct UniTaskLoopRunnerPreLateUpdate { };
         public struct UniTaskLoopRunnerPostLateUpdate { };
+#endif
 
         // Last
 
+#if !KILLITMYSELF_FULL
         public struct UniTaskLoopRunnerLastInitialization { };
         public struct UniTaskLoopRunnerLastEarlyUpdate { };
         public struct UniTaskLoopRunnerLastFixedUpdate { };
@@ -39,19 +44,25 @@ namespace Cysharp.Threading.Tasks
         public struct UniTaskLoopRunnerLastUpdate { };
         public struct UniTaskLoopRunnerLastPreLateUpdate { };
         public struct UniTaskLoopRunnerLastPostLateUpdate { };
+#endif
 
         // Yield
 
+#if !KILLITMYSELF_FULL
         public struct UniTaskLoopRunnerYieldInitialization { };
         public struct UniTaskLoopRunnerYieldEarlyUpdate { };
         public struct UniTaskLoopRunnerYieldFixedUpdate { };
         public struct UniTaskLoopRunnerYieldPreUpdate { };
+#endif
         public struct UniTaskLoopRunnerYieldUpdate { };
+#if !KILLITMYSELF_FULL
         public struct UniTaskLoopRunnerYieldPreLateUpdate { };
         public struct UniTaskLoopRunnerYieldPostLateUpdate { };
+#endif
 
         // Yield Last
 
+#if !KILLITMYSELF_FULL
         public struct UniTaskLoopRunnerLastYieldInitialization { };
         public struct UniTaskLoopRunnerLastYieldEarlyUpdate { };
         public struct UniTaskLoopRunnerLastYieldFixedUpdate { };
@@ -65,6 +76,8 @@ namespace Cysharp.Threading.Tasks
         public struct UniTaskLoopRunnerLastTimeUpdate { };
         public struct UniTaskLoopRunnerYieldTimeUpdate { };
         public struct UniTaskLoopRunnerLastYieldTimeUpdate { };
+#endif
+
 #endif
     }
 
@@ -178,8 +191,10 @@ namespace Cysharp.Threading.Tasks
 
     public static class PlayerLoopHelper
     {
+#if !KILLITMYSELF_FULL
         static readonly ContinuationQueue ThrowMarkerContinuationQueue = new ContinuationQueue(PlayerLoopTiming.Initialization);
         static readonly PlayerLoopRunner ThrowMarkerPlayerLoopRunner = new PlayerLoopRunner(PlayerLoopTiming.Initialization);
+#endif
 
         public static SynchronizationContext UnitySynchronizationContext => unitySynchronizationContext;
         public static int MainThreadId => mainThreadId;
@@ -406,7 +421,10 @@ namespace Cysharp.Threading.Tasks
 #endif
 
             var copyList = playerLoop.subSystemList.ToArray();
+            
+            // Bean Shootout only needs Update
 
+#if !KILLITMYSELF_FULL
             // Initialization
             InsertLoop(copyList, injectTimings, typeof(PlayerLoopType.Initialization),
                 InjectPlayerLoopTimings.Initialization, 0, true,
@@ -442,16 +460,19 @@ namespace Cysharp.Threading.Tasks
             InsertLoop(copyList, injectTimings, typeof(PlayerLoopType.PreUpdate),
                 InjectPlayerLoopTimings.LastPreUpdate, 7, false,
                 typeof(UniTaskLoopRunners.UniTaskLoopRunnerLastYieldPreUpdate), typeof(UniTaskLoopRunners.UniTaskLoopRunnerLastPreUpdate), PlayerLoopTiming.LastPreUpdate);
-
+#endif
             // Update
             InsertLoop(copyList, injectTimings, typeof(PlayerLoopType.Update),
                 InjectPlayerLoopTimings.Update, 8, true,
                 typeof(UniTaskLoopRunners.UniTaskLoopRunnerYieldUpdate), typeof(UniTaskLoopRunners.UniTaskLoopRunnerUpdate), PlayerLoopTiming.Update);
 
+#if !KILLITMYSELF_FULL
             InsertLoop(copyList, injectTimings, typeof(PlayerLoopType.Update),
                 InjectPlayerLoopTimings.LastUpdate, 9, false,
                 typeof(UniTaskLoopRunners.UniTaskLoopRunnerLastYieldUpdate), typeof(UniTaskLoopRunners.UniTaskLoopRunnerLastUpdate), PlayerLoopTiming.LastUpdate);
-
+#endif
+  
+#if !KILLITMYSELF_FULL
             // PreLateUpdate
             InsertLoop(copyList, injectTimings, typeof(PlayerLoopType.PreLateUpdate),
                 InjectPlayerLoopTimings.PreLateUpdate, 10, true,
@@ -479,6 +500,8 @@ namespace Cysharp.Threading.Tasks
             InsertLoop(copyList, injectTimings, typeof(PlayerLoopType.TimeUpdate),
                 InjectPlayerLoopTimings.LastTimeUpdate, 15, false,
                 typeof(UniTaskLoopRunners.UniTaskLoopRunnerLastYieldTimeUpdate), typeof(UniTaskLoopRunners.UniTaskLoopRunnerLastTimeUpdate), PlayerLoopTiming.LastTimeUpdate);
+#endif
+            
 #endif
 
             // Insert UniTaskSynchronizationContext to Update loop
@@ -516,7 +539,7 @@ namespace Cysharp.Threading.Tasks
 
         // Diagnostics helper
 
-#if UNITY_2019_3_OR_NEWER
+#if UNITY_2019_3_OR_NEWER && !KILLITMYSELF_FULL
 
         public static void DumpCurrentPlayerLoop()
         {
@@ -573,7 +596,7 @@ namespace Cysharp.Threading.Tasks
 
             return false;
         }
-
+        
 #endif
 
     }

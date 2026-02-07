@@ -6,6 +6,9 @@ using UnityEngine.UI;
 
 namespace KillItMyself.Runtime
 {
+    /// <summary>
+    /// BulletManager is used by the player
+    /// </summary>
     public class BulletManager : MonoBehaviour
     {
         [SerializeField] private GameObject BulletPrefab;
@@ -18,6 +21,7 @@ namespace KillItMyself.Runtime
         [SerializeField] private Transform GunShootParticleOffset;
 
         [SerializeField] private PlayerInput playerControls;
+        private InputAction ShootInput;
 
         public GunSO gun;
         [SerializeField] private Image gunVisual;
@@ -26,8 +30,19 @@ namespace KillItMyself.Runtime
 
         [SerializeField] private PlayerAmmo playerAmmo;
 
+        /// <summary>
+        /// CanShoot determines if we are reloading
+        /// </summary>
         public bool CanShoot;
+        /// <summary>
+        /// CannotShootNoMatterWhat determines if we can shoot at all
+        /// </summary>
         public bool CannotShootNoMatterWhat;
+
+        private void Start()
+        {
+            ShootInput = playerControls.actions["Shoot"];
+        }
 
         private void Update()
         {
@@ -36,16 +51,15 @@ namespace KillItMyself.Runtime
                 return;
             }
 
-            if (playerControls.actions["Shoot"].WasPressedThisFrame() && !gun.HoldToShoot)
-            {
-                Shoot();
-            }
-            else if (playerControls.actions["Shoot"].IsPressed() && gun.HoldToShoot)
+            if (ShootInput.WasPressedThisFrame() && !gun.HoldToShoot || ShootInput.IsPressed() && gun.HoldToShoot)
             {
                 Shoot();
             }
         }
 
+        /// <summary>
+        /// Sets the gun image to the one in this.gun
+        /// </summary>
         public void BulletManagerInit()
         {
             gunVisual.sprite = gun.Image;

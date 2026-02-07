@@ -7,6 +7,9 @@ namespace KillItMyself.Runtime
     public class MouseCursor : MonoBehaviour
     {
         [SerializeField] private Image CursorImage;
+        [SerializeField] private Sprite DefaultCursor;
+        [SerializeField] private Sprite NotAllowedCursor;
+        [SerializeField] private Sprite TextCursor;
 
         public bool HideCursorImage;
         public bool UseSystemMouseCursor;
@@ -17,6 +20,10 @@ namespace KillItMyself.Runtime
         {
             instance = this;
             Cursor.visible = false;
+
+#if UNITY_ANDROID
+            CursorImage.enabled = false;
+#endif
         }
 
 #if UNITY_STANDALONE || UNITY_EDITOR
@@ -64,9 +71,38 @@ namespace KillItMyself.Runtime
         }
 #endif
 
+        public void UpdateMouseCursorScale()
+        {
+            float val = BetterPrefs.GetFloat("KeyboardMouseSettings_MouseScale", 1);
+            CursorImage.transform.localScale = new(val, val, val);
+        }
+
+        public void UpdateMouseCursor(MouseCursorType type)
+        {
+            switch (type)
+            {
+                case MouseCursorType.Default:
+                    CursorImage.sprite = DefaultCursor;
+                    break;
+                case MouseCursorType.NotAllowed:
+                    CursorImage.sprite = NotAllowedCursor;
+                    break;
+                case MouseCursorType.Text:
+                    CursorImage.sprite = TextCursor;
+                    break;
+            }
+        }
+
         private void OnDestroy()
         {
             instance = null;
         }
+    }
+
+    public enum MouseCursorType
+    {
+        Default = 0,
+        NotAllowed = 1,
+        Text = 2
     }
 }

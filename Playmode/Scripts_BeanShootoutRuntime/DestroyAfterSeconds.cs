@@ -1,4 +1,3 @@
-using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace KillItMyself.Runtime
@@ -9,13 +8,7 @@ namespace KillItMyself.Runtime
 
         private void Start()
         {
-            DestroyWait().Forget();
-        }
-
-        private async UniTask DestroyWait()
-        {
-            await UniTask.WaitForSeconds(timeToDestroy);
-            Destroy(gameObject);
+            Destroy(gameObject, timeToDestroy);
         }
     }
 }

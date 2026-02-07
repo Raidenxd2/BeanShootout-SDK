@@ -57,7 +57,7 @@ namespace KillItMyself.Runtime
                 {
                     // HitRpc(collision);
                     HasBeenDestroyed = true;
-                    collision.gameObject.GetComponent<HealthSystem>().DamageRpc(damageOnline.Value);
+                    collision.gameObject.GetComponent<HealthSystem>().DamageRpc(damageOnline.Value, NetworkManager.Singleton.LocalClientId);
                     DespawnObjectRpc();
                 }
                 else

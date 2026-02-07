@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using KillItMyself.Runtime.Animation;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -20,23 +21,32 @@ namespace KillItMyself.Runtime
         public bool grounded;
 
         [Header("Other")]
-        public Transform orientation;
-        public GameObject playerModel;
-        public LayerMask dontRenderLayer;
+        [SerializeField] private bool isBot;
+#if KILLITMYSELF_FULL
+        [SerializeField] private BotPlayer bot;
+#endif
+        public Transform playerModel;
+        // public LayerMask dontRenderLayer;
         public LayerMask spinnerLayer;
         public bool canMove = true;
         public bool IsOnKeyboardMouse;
         private float horizontalInput;
         private float verticalInput;
         private Vector3 moveDirection;
-        private Rigidbody rb;
-        Transform oldParent = null;
+        [SerializeField] private Rigidbody rb;
+        Transform oldParent;
 #if KILLITMYSELF_FULL
         public GameObject ShipLevel_OverrideCodeInteractUI;
         public GameObject ShipLevel_OverrideCodeUI;
-        public GameObject HotelLevel_LeverInteractUI;
+        public GameObject HotelLevel_LeverInteractUI; 
+        public GameObject HotelLevel_CodeInputInteractUI;
+        public GameObject HotelLevel_CodeInputUI;
 #endif
         [SerializeField] private PlayerInput playerControls;
+        private InputAction MovementInput;
+        public InputAction JumpInput;
+        private InputAction InteractInput;
+        private InputAction SprintInput;
         [SerializeField] private Transform ControllerButtonsParent;
         [SerializeField] private GameObject XboxConrollerButtons;
         [SerializeField] private GameObject PlayStationButtons;
@@ -45,9 +55,11 @@ namespace KillItMyself.Runtime
         [SerializeField] private Transform PlayerLocationCircle;
         [SerializeField] private PlayerFade fade;
 
-        [SerializeField] private BulletManager bulletManager;
+        public BulletManager bulletManager;
         [SerializeField] private PlayerCam playerCamComponent;
 
+        [SerializeField] private GameObject DeviceDisconnectedUI;
+        
         private CursorLockMode prevCursorLockMode;
         private bool prevCanMove;
         private bool prevCannotShootNoMatterWhat;
@@ -74,19 +86,29 @@ namespace KillItMyself.Runtime
 #endif
 
             oldParent = transform.parent;
-
-            if (playerControls.currentControlScheme.Contains("Keyboard") || playerControls.currentControlScheme.Contains("Mouse"))
-            {
-                IsOnKeyboardMouse = true;
-            }
             
-            rb = gameObject.GetComponent<Rigidbody>();
             rb.freezeRotation = true;
 
             ResetJump();
             
-            BeanLogger.Log("Controller2: " + playerControls.devices[0].displayName, this);
-            BeanLogger.Log(playerControls.devices[0].name, this);
+#if KILLITMYSELF_FULL
+            if (isBot)
+            {
+                bot.Init();
+                return;
+            }
+#endif
+            
+            if (playerControls.currentControlScheme.Contains("Keyboard") || playerControls.currentControlScheme.Contains("Mouse"))
+            {
+                IsOnKeyboardMouse = true;
+            }
+
+            if (CommandLineArgs.VerboseLoggingEnabled)
+            {
+                BeanLogger.Log("Controller2: " + playerControls.devices[0].displayName, this);
+                BeanLogger.Log(playerControls.devices[0].name, this);
+            }
 
             if (playerControls.devices[0].displayName.Contains("Xbox"))
             {
@@ -104,6 +126,13 @@ namespace KillItMyself.Runtime
             {
                 // Instantiate(GenericButtons, ControllerButtonsParent);
             }
+
+            playerControls.deviceRegainedEvent.AddListener(OnDeviceReconnect);
+
+            MovementInput = playerControls.actions["Movement"];
+            JumpInput = playerControls.actions["Jump"];
+            InteractInput = playerControls.actions["Interact"];
+            SprintInput = playerControls.actions["Sprint"];
 
 #if KILLITMYSELF_FULL
             if (GameObject.Find("BrokenArcadeMachineSound"))
@@ -129,6 +158,20 @@ namespace KillItMyself.Runtime
             MovePlayer();
         }
 
+        private string deviceName;
+        public void OnDeviceDisconnect(PlayerInput playerInput)
+        {
+            deviceName = playerInput.devices[0].displayName;
+            BeanLogger.LogWarning("Device " + deviceName + " has disconnected.", this);
+            DeviceDisconnectedUI.SetActive(true);
+        }
+
+        public void OnDeviceReconnect(PlayerInput playerInput)
+        {
+            BeanLogger.LogWarning("Device " + deviceName + " has reconnected.", this);
+            DeviceDisconnectedUI.GetComponent<WindowAnimation>().Close();
+        }
+
         private async UniTask Respawn()
         {
             rb.useGravity = false;
@@ -137,7 +180,7 @@ namespace KillItMyself.Runtime
             fade.FadeIn();
             await UniTask.WaitForSeconds(1f);
 
-            if (SpawnManager.instance != null)
+            if (SpawnManager.instance)
             {
                 rb.position = SpawnManager.instance.SpawnPoints[Random.Range(0, SpawnManager.instance.SpawnPoints.Length)].position;
             }
@@ -182,22 +225,19 @@ namespace KillItMyself.Runtime
 
         private void MyInput()
         {
-            Vector2 moveDirection;
-
             if (!canMove)
             {
-                moveDirection = Vector2.zero;
                 horizontalInput = 0;
                 verticalInput = 0;
                 return;
             }
 
-            moveDirection = playerControls.actions["Movement"].ReadValue<Vector2>();
+            Vector2 moveDirection = MovementInput.ReadValue<Vector2>();
             horizontalInput = moveDirection.x;
             verticalInput = moveDirection.y;
 
             // When to jump
-            if (playerControls.actions["Jump"].IsPressed() && readyToJump && grounded)
+            if (JumpInput.IsPressed() && readyToJump && grounded)
             {
                 readyToJump = false;
 
@@ -207,12 +247,26 @@ namespace KillItMyself.Runtime
             }
 
 #if KILLITMYSELF_FULL
-            if (playerControls.actions["Interact"].WasPressedThisFrame() && ShipLevel_OverrideCodeInteractUI.activeSelf && !ShipLevel_OverrideCodeUI.activeSelf)
+            if (InteractInput.WasPressedThisFrame() && ShipLevel_OverrideCodeInteractUI.activeSelf && !ShipLevel_OverrideCodeUI.activeSelf)
             {
                 PreventPlayerFromDoingAnything();
-
                 Cursor.lockState = CursorLockMode.None;
+                
                 ShipLevel_OverrideCodeUI.SetActive(true);
+            }
+
+            if (InteractInput.WasPressedThisFrame() && HotelLevel_LeverInteractUI.activeSelf)
+            {
+                HotelLevel_LeverInteract.instance.LeverInteract();
+                HotelLevel_LeverInteractUI.SetActive(false);
+            }
+
+            if (InteractInput.WasPressedThisFrame() && HotelLevel_CodeInputInteractUI.activeSelf)
+            {
+                PreventPlayerFromDoingAnything();
+                Cursor.lockState = CursorLockMode.None;
+                
+                HotelLevel_CodeInputUI.SetActive(true);
             }
 #endif
         }
@@ -224,13 +278,13 @@ namespace KillItMyself.Runtime
 
             Cursor.lockState = CursorLockMode.Locked;
             ShipLevel_OverrideCodeUI.SetActive(false);
+            HotelLevel_CodeInputUI.SetActive(false);
         }
 #endif
 
         private void MovePlayer()
         {
-            RaycastHit hitInfo = new();
-            bool hit = Physics.Raycast(transform.position, Vector3.down, out hitInfo, playerHeight * 0.5f + 0.2f, spinnerLayer);
+            bool hit = Physics.Raycast(transform.position, Vector3.down, out RaycastHit hitInfo, playerHeight * 0.5f + 0.2f, spinnerLayer);
 
             if (hit)
             {
@@ -238,33 +292,33 @@ namespace KillItMyself.Runtime
             }
             else
             {
-                if (oldParent != null)
+                if (oldParent)
                 {
                     transform.SetParent(oldParent);
                 }
             }
 
             // Calculate movement direction
-            moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
+            moveDirection = playerModel.forward * verticalInput + playerModel.right * horizontalInput;
 
             // On ground
             if (grounded)
             {
-                if (playerControls.actions["Sprint"].IsPressed())
+                if (SprintInput.IsPressed())
                 {
                     playerCam.fieldOfView = GameSettings.MovementSettings.fovSprint;
-                    rb.AddForce(moveDirection.normalized * GameSettings.MovementSettings.sprintSpeed * 10f, ForceMode.Force);
+                    rb.AddForce(moveDirection.normalized * (GameSettings.MovementSettings.sprintSpeed * 10f), ForceMode.Force);
                 }
                 else
                 {
                     playerCam.fieldOfView = GameSettings.MovementSettings.fovNormal;
-                    rb.AddForce(moveDirection.normalized * GameSettings.MovementSettings.moveSpeed * 10f, ForceMode.Force);
+                    rb.AddForce(moveDirection.normalized * (GameSettings.MovementSettings.moveSpeed * 10f), ForceMode.Force);
                 }
             }
             // In air
             else if (!grounded)
             {
-                rb.AddForce(moveDirection.normalized * GameSettings.MovementSettings.moveSpeed * 10f * GameSettings.MovementSettings.airMultiplier, ForceMode.Force);
+                rb.AddForce(moveDirection.normalized * (GameSettings.MovementSettings.moveSpeed * 10f * GameSettings.MovementSettings.airMultiplier), ForceMode.Force);
             }
         }
 
@@ -280,7 +334,7 @@ namespace KillItMyself.Runtime
             }
         }
 
-        public void Jump()
+        private void Jump()
         {
             //Reset Y velocity
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
@@ -295,27 +349,25 @@ namespace KillItMyself.Runtime
 
         public void PreventPlayerFromDoingAnything()
         {
-            prevCanMove = canMove;
-            prevVel = GetComponent<Rigidbody>().linearVelocity;
-            prevCanShoot = bulletManager.CanShoot;
-            prevCanMoveCamera = playerCamComponent.canMoveCamera;
-            prevCannotShootNoMatterWhat = bulletManager.CannotShootNoMatterWhat;
+            // prevCanMove = canMove;
+            // prevVel = GetComponent<Rigidbody>().linearVelocity;
+            // prevCanShoot = bulletManager.CanShoot;
+            // prevCanMoveCamera = playerCamComponent.canMoveCamera;
+            // prevCannotShootNoMatterWhat = bulletManager.CannotShootNoMatterWhat;
             canMove = false;
             rb.linearVelocity = Vector3.zero;
-            bulletManager.CanShoot = false;
+            // bulletManager.CanShoot = false;
             bulletManager.CannotShootNoMatterWhat = true;
             playerCamComponent.canMoveCamera = false;
         }
 
         public void LetPlayerDoAnything()
         {
-            Cursor.lockState = prevCursorLockMode;
-
-            canMove = prevCanMove;
-            rb.linearVelocity = prevVel;
-            bulletManager.CanShoot = prevCanShoot;
-            bulletManager.CannotShootNoMatterWhat = prevCannotShootNoMatterWhat;
-            playerCamComponent.canMoveCamera = prevCanMoveCamera;
+            canMove = true;
+            // rb.linearVelocity = prevVel;
+            // bulletManager.CanShoot = true;
+            bulletManager.CannotShootNoMatterWhat = false;
+            playerCamComponent.canMoveCamera = true;
         }
     }
 }

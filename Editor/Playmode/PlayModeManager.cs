@@ -20,7 +20,7 @@ public class PlayModeManager : Editor
         EnterPlaymode2();
     }
 
-    public async static void EnterPlaymode2()
+    private async static void EnterPlaymode2()
     {
         // Reload Domain must be disabled or else this wont work
         EditorSettings.enterPlayModeOptionsEnabled = true;
@@ -47,9 +47,13 @@ public class PlayModeManager : Editor
         GameSettings.ShowMinimap = false;
         GameSettings.MovementSettings = AssetDatabase.LoadMainAssetAtPath("Packages/com.onewing.beanshootout-customlevels/Playmode/SO/MovementSettings/DefaultMovementSettings.asset") as PlayerMovementSettingsSO;
 
+#if KILLITMYSELF_URP
+        BeanShootoutURP.EnableEarlyCmd = true;
+#endif
+
         Instantiate(AssetDatabase.LoadMainAssetAtPath("Packages/com.onewing.beanshootout-customlevels/Playmode/Prefabs/Core/DDOLMinimal.prefab") as GameObject);
 
-        EditorSceneManager.LoadSceneInPlayMode("Packages/com.onewing.beanshootout-customlevels/Playmode/Scenes/Multiplayer/LocalLevelScene.unity", new(UnityEngine.SceneManagement.LoadSceneMode.Additive)); ;
+        EditorSceneManager.LoadSceneInPlayMode("Packages/com.onewing.beanshootout-customlevels/Playmode/Scenes/Multiplayer/LocalLevelScene.unity", new(UnityEngine.SceneManagement.LoadSceneMode.Additive));
     }
 
     private static void PlayModeState(PlayModeStateChange state)

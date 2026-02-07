@@ -1,7 +1,11 @@
 {
     "name": "KillItMyself.Runtime.Logger",
     "rootNamespace": "KillItMyself.Runtime",
-    "references": [],
+    "references": [
+        "GUID:2dade2df5ac61e2428ab09c29103aa54",
+        "GUID:343deaaf83e0cee4ca978e7df0b80d21",
+        "GUID:2bafac87e7f4b9b418d9448d219b01ab"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

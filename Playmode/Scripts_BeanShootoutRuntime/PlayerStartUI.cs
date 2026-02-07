@@ -29,12 +29,12 @@ namespace KillItMyself.Runtime
         [SerializeField] private GameObject GenericButtons;
         [SerializeField] private Transform ControllerIconsParent;
 
-        [SerializeField] private List<GunSO> guns = new();
-        private int currentIndex;
+        public List<GunSO> guns = new();
+        public int currentIndex;
 
-        [SerializeField] private Color[] colors;
-        private int PlayerColorCurrentIndex;
-        private int PlayerVisorColorCurrentIndex;
+        public Color[] colors;
+        public int PlayerColorCurrentIndex;
+        public int PlayerVisorColorCurrentIndex;
 
         [SerializeField] private MeshRenderer playerRenderer;
         [SerializeField] private MeshRenderer playerLocationRenderer;
@@ -97,7 +97,10 @@ namespace KillItMyself.Runtime
             playerRenderer.materials[1].color = colors[PlayerVisorColorCurrentIndex];
             playerLocationRenderer.material.color = colors[PlayerColorCurrentIndex];
 
-            JoinGameRpc(currentIndex, PlayerColorCurrentIndex, PlayerVisorColorCurrentIndex);
+            if (OnlineManager.instance.InOnlineGame)
+            {
+                JoinGameRpc(currentIndex, PlayerColorCurrentIndex, PlayerVisorColorCurrentIndex);
+            }
 
             PlayerStartUIRoot.SetActive(false);
             GetComponent<PlayerStartUI>().enabled = false;
@@ -113,7 +116,7 @@ namespace KillItMyself.Runtime
         }
 
         [Rpc(SendTo.NotOwner)]
-        public void JoinGameRpc(int index, int playerColorIndex, int playerVisorColorIndex)
+        private void JoinGameRpc(int index, int playerColorIndex, int playerVisorColorIndex)
         {
             bullet.gun = guns[index];
             bullet.BulletManagerInit();

@@ -1,8 +1,12 @@
 #if KILLITMYSELF_FULL
-using KillItMyself.Runtime.Content.Resources;
+using Cysharp.Threading.Tasks;
+using UnityEngine.UI;
+using com.raiden.assetbundleassetreference.Runtime;
 #endif
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 namespace KillItMyself.Runtime
 {
@@ -14,12 +18,25 @@ namespace KillItMyself.Runtime
 
         [SerializeField] private GameObject LoadingAsset;
 
-        [SerializeField] private Transform SettingsMenuParent;
+        [SerializeField] private GameObject BotPlayerPrefab;
+        
+#if UNITY_EDITOR        
+        [SerializeField] private bool UseAssetBundlesInEditor;
+#endif        
+        
+        [SerializeField] private Transform SettingsRootParent;
+        private GameObject SettingsRoot;
+#if KILLITMYSELF_FULL
+        [SerializeField] private AssetBundleAssetReference SettingsRootRef;
+        [SerializeField] private AssetBundleAssetReference SettingsRootSharedRef;
+#endif
+        private AssetBundle SettingsRootSharedBundle;
+        private AssetBundle SettingsRootBundle;
 
         [SerializeField] private GameObject ResumeGameButton;
         [SerializeField] private GameObject NoButton;
 
-        private CursorLockMode prevCursorLock;
+        public CursorLockMode prevCursorLock;
         private bool prevCanMove;
 
         public static PauseManager instance;
@@ -36,6 +53,11 @@ namespace KillItMyself.Runtime
             if (paused)
             {
                 SetTimeScale(0);
+                
+                if (OnlineManager.instance.InOnlineGame)
+                {
+                    CurrentPlayer.instance.playerMovement.PreventPlayerFromDoingAnything();
+                }
 
                 prevCursorLock = Cursor.lockState;
 
@@ -48,35 +70,16 @@ namespace KillItMyself.Runtime
             else
             {
                 SetTimeScale(1);
+                
+                if (OnlineManager.instance.InOnlineGame)
+                {
+                    CurrentPlayer.instance.playerMovement.LetPlayerDoAnything();
+                }
 
                 Cursor.lockState = prevCursorLock;
 
                 PauseScreen.SetActive(false);
             }
-
-            if (OnlineManager.instance.InOnlineGame)
-            {
-                if (paused)
-                {
-                    prevCanMove = CurrentPlayer.instance.playerMovement.canMove;
-                    CurrentPlayer.instance.playerMovement.canMove = false;
-                }
-                else
-                {
-                    CurrentPlayer.instance.playerMovement.canMove = prevCanMove;
-                }   
-            }
-        }
-
-        public void ResumeGame()
-        {
-            paused = false;
-
-            SetTimeScale(1);
-
-            Cursor.lockState = prevCursorLock;
-
-            PauseScreen.SetActive(false);
         }
 
         public void ShowExitGameScreen()
@@ -92,35 +95,52 @@ namespace KillItMyself.Runtime
 #if KILLITMYSELF_FULL
         public void OpenSettingsMenu()
         {
-            OpenSettingsMenuAsync();
+            ShowSettingsAsync().Forget();
         }
 
-        public void CloseSettingsMenu()
+        private async UniTaskVoid ShowSettingsAsync()
         {
-            SettingsMenuParent.gameObject.SetActive(false);
+            SavingRootObject.instance.LoadingAssetRoot.SetActive(true);
+            
+#if UNITY_EDITOR
+            if (!UseAssetBundlesInEditor)
+            {
+                SettingsRoot = Instantiate(UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/SettingsRoot Variant.prefab"), SettingsRootParent);
+            }
+            else
+            {
+#endif 
+                SettingsRootSharedBundle = await AssetBundle.LoadFromFileAsync(Constants.GetAssetBundleFullPathPath(SettingsRootSharedRef.BundleName));
+                SettingsRootBundle = await AssetBundle.LoadFromFileAsync(Constants.GetAssetBundleFullPathPath(SettingsRootRef.BundleName));
 
-            Destroy(SettingsMenuParent.GetChild(0).gameObject);
+                SettingsRoot = Instantiate(await SettingsRootBundle.LoadAssetAsync(SettingsRootRef.AssetName) as GameObject, SettingsRootParent);
+#if UNITY_EDITOR
+            }
+#endif
+
+            GameObject.Find("SettingsRoot_BackButton").GetComponent<Button>().onClick.AddListener(DestroySettings);
+            
+            SavingRootObject.instance.LoadingAssetRoot.SetActive(false);
         }
 
-        private void OpenSettingsMenuAsync()
+        private void DestroySettings()
         {
-            try
+            DestroySettingsAsync().Forget();
+        }
+        
+        private async UniTaskVoid DestroySettingsAsync()
+        {
+            Destroy(SettingsRoot);
+
+#if UNITY_EDITOR
+            if (UseAssetBundlesInEditor)
             {
-                SettingsMenuParent.gameObject.SetActive(true);
-                LoadingAsset.SetActive(true);
-
-                GameObject settingsGO = Instantiate(ResourcesReferences.SettingsPrefab, SettingsMenuParent);
-
-                settingsGO.GetComponent<PauseMenuSettings>().pm = this;
-
-                LoadingAsset.SetActive(false);
+#endif                
+                await SettingsRootBundle.UnloadAsync(true);
+                await SettingsRootSharedBundle.UnloadAsync(true);
+#if UNITY_EDITOR                
             }
-            catch
-            {
-                DialogManager.instance.ShowDialog(DialogButtonType.OKButton);
-
-                LoadingAsset.SetActive(false);
-            }
+#endif
         }
 #endif
 
@@ -141,9 +161,12 @@ namespace KillItMyself.Runtime
 #if KILLITMYSELF_FULL
             if (OnlineManager.instance.InOnlineGame)
             {
+                ChatManager.instance.SetAllowChatFocusing(false);
+                
                 LoadingManagerOnline.ClearCurrentIPPref();
 
                 OnlineManager.instance.InOnlineGame = false;
+                OnlineManager.instance.Disconnecting = true;
             
                 OnlineManager.instance.DisconnectAsHost();
                 OnlineManager.instance.DisconnectAndLoadMainMenu();
@@ -154,6 +177,14 @@ namespace KillItMyself.Runtime
 #elif UNITY_EDITOR
             UnityEditor.EditorApplication.ExitPlaymode();
 #endif
+        }
+
+        private void Update()
+        {
+            if (Keyboard.current.f6Key.wasPressedThisFrame)
+            {
+                Instantiate(BotPlayerPrefab);
+            }
         }
 
         private void OnDestroy()

@@ -85,7 +85,7 @@ namespace KillItMyself.Runtime
                         legacyText.text = BeanShootout_Localization_LocalizationKeys.instance.keys[KeyIndex].Text_SimplifiedChinese;
                         break;
                     case "ru":
-                        legacyText.text = BeanShootout_Localization_LocalizationKeys.instance.keys[KeyIndex].Text_English;
+                        legacyText.text = BeanShootout_Localization_LocalizationKeys.instance.keys[KeyIndex].Text_Russian;
                         break;
                 }
             }
@@ -112,7 +112,7 @@ namespace KillItMyself.Runtime
                         TextMeshProText.text = BeanShootout_Localization_LocalizationKeys.instance.keys[KeyIndex].Text_SimplifiedChinese;
                         break;
                     case "ru":
-                        TextMeshProText.text = BeanShootout_Localization_LocalizationKeys.instance.keys[KeyIndex].Text_English;
+                        TextMeshProText.text = BeanShootout_Localization_LocalizationKeys.instance.keys[KeyIndex].Text_Russian;
                         break;
                 }
             }

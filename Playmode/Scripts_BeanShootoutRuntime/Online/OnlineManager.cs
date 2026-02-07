@@ -1,7 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
-using Unity.Networking.Transport.Logging;
+using Unity.Networking.Transport;
 using UnityEngine;
 
 namespace KillItMyself.Runtime
@@ -13,6 +13,7 @@ namespace KillItMyself.Runtime
         public bool InOnlineGame;
         public bool Host_InGame;
 
+        public bool Connecting;
         public bool Disconnecting;
 
         public bool IgnoreErrors;
@@ -72,6 +73,8 @@ namespace KillItMyself.Runtime
                 errorString += "\n<size=25>" + DebugLogPrev.prevLog + "</size>";
                 DebugLogPrev.prevLog = null;
             }
+            
+            Connecting = false;
 
             NetworkErrorManager.instance.ShowErrorAndDisconnect(errorString);
         }
@@ -81,6 +84,13 @@ namespace KillItMyself.Runtime
             if (NetworkManager.Singleton.IsServer)
             {
                 response.Approved = true;
+            }
+
+            if (CurrentBannedPlayers.current.playerUniques.Contains(request.Payload.ToString()))
+            {
+                response.Approved = false;
+                response.Reason = "You were kicked from the server: You have been permanently banned from this server.";
+                return;
             }
 
             if (Host_InGame)
@@ -115,13 +125,9 @@ namespace KillItMyself.Runtime
                 return;
             }
 
-            NetworkManager.Singleton.Shutdown();
-
             OnlineSceneManagement.instance.Stop();
 
             BeanLogger.LogWarning("Host left.", this);
-
-            NetworkManager.Singleton.Shutdown();
 
             Destroy(GameObject.Find("PlayerInput(Clone)"));
 
@@ -131,6 +137,7 @@ namespace KillItMyself.Runtime
         public void DisconnectAndLoadMainMenu()
         {
             Disconnecting = true;
+            Connecting = false;
             Host_InGame = false;
 
             NetworkManager.Singleton.Shutdown();
@@ -206,9 +213,24 @@ namespace KillItMyself.Runtime
 
             Destroy(GameObject.Find("PlayerInput(Clone)"));
             
+            BeanLogger.Log(NetworkManager.Singleton.DisconnectReason, this);
+
+            if (Connecting)
+            {
+                NetworkErrorManager.instance.ShowErrorAndDisconnect(await LocalizedStringReferences.instance.Online_FailedToConnect.GetLocalizedStringAsync());
+                return;
+            }
+            
             if (!string.IsNullOrEmpty(NetworkManager.Singleton.DisconnectReason))
             {
-                NetworkErrorManager.instance.ShowErrorAndDisconnect("<size=25>" + NetworkManager.Singleton.DisconnectReason + "\n\nReturning to main menu...</size>");
+                if (NetworkManager.Singleton.DisconnectReason.Equals("SyncError"))
+                {
+                    NetworkErrorManager.instance.ShowErrorAndDisconnect(await LocalizedStringReferences.instance.Online_FailedToSyncData.GetLocalizedStringAsync());
+                }
+                else
+                {
+                    NetworkErrorManager.instance.ShowErrorAndDisconnect(NetworkManager.Singleton.DisconnectReason + "\n\nReturning to main menu...");
+                }
             }
             else
             {
@@ -219,14 +241,17 @@ namespace KillItMyself.Runtime
 
         private void OnDestroy()
         {
-#if KILLITMYSELF_FULL            
-            NetworkManager.Singleton.OnTransportFailure -= OnTransportFailure;
-            NetworkManager.Singleton.OnConnectionEvent -= OnConnectionEvent;
+#if KILLITMYSELF_FULL
+            if (NetworkManager.Singleton)
+            {
+                NetworkManager.Singleton.OnTransportFailure -= OnTransportFailure;
+                NetworkManager.Singleton.OnConnectionEvent -= OnConnectionEvent;
 
-            NetworkManager.Singleton.OnClientStarted -= OnClientStarted;
-            NetworkManager.Singleton.OnClientStopped -= OnClientStopped;
+                NetworkManager.Singleton.OnClientStarted -= OnClientStarted;
+                NetworkManager.Singleton.OnClientStopped -= OnClientStopped;
 
-            NetworkManager.Singleton.ConnectionApprovalCallback = null;
+                NetworkManager.Singleton.ConnectionApprovalCallback = null;
+            }
 #endif
 
             instance = null;

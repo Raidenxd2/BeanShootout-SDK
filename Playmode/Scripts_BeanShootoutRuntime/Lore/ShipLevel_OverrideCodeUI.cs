@@ -34,10 +34,15 @@ namespace KillItMyself.Runtime
 
         [SerializeField] private PlayerMovement playerMovement;
 
+#if KILLITMYSELF_FULL
+        [SerializeField] private AchievementSO UnderTheSurfaceAchievement;
+        [SerializeField] private AchievementSO BilingualAchievement;
+#endif
+
         private void Start()
         {
 #if KILLITMYSELF_FULL
-            if (LorePartOneVariables.OverrideCodeFound)
+            if (LorePartOneVariables.OverrideCodeFound && SceneManager.GetActiveScene().name == SceneNames.S_ShipLevel)
             {
                 CodeText.text = LorePartOneVariables.OverrideCode.ToString();
             }
@@ -118,16 +123,51 @@ namespace KillItMyself.Runtime
         public void InputButton()
         {
 #if KILLITMYSELF_FULL
-            string inputCode = LorePartOneVariables.OverrideCode.ToString();
-            string code = One.ToString() + Two.ToString() + Three.ToString() + Four.ToString() + Five.ToString();
-            if (code == inputCode)
+            if (SceneManager.GetActiveScene().name == SceneNames.S_SkyHotelLevel)
             {
-                InputButtonAsync().Forget();
-            }
+                string inputCode = 57385.ToString();
+                string code = One.ToString() + Two + Three + Four + Five;
+                if (code == inputCode)
+                {
+                    gameObject.SetActive(false);
+                    
+                    playerMovement.ShipLevel_OverrideCodeInteractUI.SetActive(false);
+                    AchievementManager.instance.GrantAchievement(UnderTheSurfaceAchievement);
 
-            if (code != inputCode)
+                    GameObject.Find("HotelLevel_Elevator").GetComponent<HotelLevel_Elevator>().UnlockElevator();
+                    
+                    playerMovement.LetPlayerDoAnything();
+                    Cursor.lockState = CursorLockMode.Locked;
+                }
+            }
+            else if (SceneManager.GetActiveScene().name == SceneNames.S_MoonbaseBetaLevel)
             {
-                BeanLogger.Log("Exploding ship cause no", this);
+                string inputCode = 16790.ToString();
+                string code = One.ToString() + Two + Three + Four + Five;
+                if (code == inputCode)
+                {
+                    gameObject.SetActive(false);
+                    playerMovement.ShipLevel_OverrideCodeInteractUI.SetActive(false);
+                    AchievementManager.instance.GrantAchievement(BilingualAchievement);
+                    
+                    playerMovement.LetPlayerDoAnything();
+                    Cursor.lockState = CursorLockMode.Locked;
+                }
+            }
+            else
+            {
+                string inputCode = LorePartOneVariables.OverrideCode.ToString();
+                string code = One.ToString() + Two + Three + Four + Five;
+                if (code == inputCode)
+                {
+                    playerMovement.ShipLevel_OverrideCodeInteractUI.SetActive(false);
+                    InputButtonAsync().Forget();
+                }
+
+                if (code != inputCode)
+                {
+                    BeanLogger.Log("Exploding ship cause no", this);
+                }
             }
 #endif
         }

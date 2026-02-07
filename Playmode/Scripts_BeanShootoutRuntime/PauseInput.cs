@@ -6,27 +6,16 @@ namespace KillItMyself.Runtime
     public class PauseInput : NetworkBehaviour
     {
         public PlayerInput playerInput;
+        private InputAction PauseInputA;
 
-        public static PauseInput instance;
-
-        private void Awake()
+        private void Start()
         {
-            if (!IsOwner)
-            {
-                return;
-            }
-
-            instance = this;
-        }
-
-        private new void OnDestroy()
-        {
-            instance = null;
+            PauseInputA = playerInput.actions["Pause"];
         }
 
         private void Update()
         {
-            if (playerInput.actions["Pause"].WasPressedThisFrame())
+            if (PauseInputA.WasPressedThisFrame())
             {
                 PauseManager.instance.PauseOrUnpause();
             }

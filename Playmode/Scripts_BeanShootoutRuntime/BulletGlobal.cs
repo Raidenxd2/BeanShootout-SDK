@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace KillItMyself.Runtime
 {
+    /// <summary>
+    /// BulletGlobal is only used if GameSettings.SharedAmmo is enabled
+    /// </summary>
     public class BulletGlobal : MonoBehaviour
     {
         public static BulletGlobal instance;

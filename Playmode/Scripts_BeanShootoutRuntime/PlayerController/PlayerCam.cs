@@ -13,7 +13,6 @@ namespace KillItMyself.Runtime
         public float sensX;
         public float sensY;
 
-        public Transform orientation;
         public Transform playerModel;
 
         public bool canMoveCamera = true;
@@ -21,28 +20,32 @@ namespace KillItMyself.Runtime
         private float yRotation;
 
         [SerializeField] private PlayerInput playerControls;
-
+        private InputAction CameraInput;
+        
         private static bool playerHasJoined;
+
+        [SerializeField] private Camera Camera;
+        [SerializeField] private AudioListener AudioListener;
+        [SerializeField] private UniversalAdditionalCameraData URPCamData;
 
         private void Start()
         {
             if (OnlineManager.instance.InOnlineGame && !IsOwner)
             {
-                gameObject.GetComponent<Camera>().enabled = false;
-                gameObject.GetComponent<AudioListener>().enabled = false;
+                Camera.enabled = false;
+                AudioListener.enabled = false;
                 return;
             }
 
-            // if (OnlineManager.instance.InOnlineGame)
-            // {
-            //     playerControls = GlobalPlayerInput.instance.playerInput;
-            // }
+            CameraInput = playerControls.actions["Camera"];
 
-            GetComponent<UniversalAdditionalCameraData>().renderPostProcessing = BetterPrefs.GetBool("PostProcessing", true);
+            URPCamData.renderPostProcessing = BetterPrefs.GetBool("PostProcessing", true);
 
             if (!playerHasJoined)
             {
-                gameObject.tag = "Player1Camera";
+#if KILLITMYSELF_FULL
+                RotateTowardsPlayer1Camera.player = transform;
+#endif
                 playerHasJoined = true;
             }
 
@@ -54,8 +57,13 @@ namespace KillItMyself.Runtime
 
             if (playerControls.devices[0].displayName.Contains("Keyboard") || playerControls.devices[0].displayName.Contains("Mouse"))
             {
-                sensX = 10 * BetterPrefs.GetInt("KeyboardMouseSettings_MouseSensitivity", 1);
-                sensY = 10 * BetterPrefs.GetInt("KeyboardMouseSettings_MouseSensitivity", 1);
+                sensX = 2 * BetterPrefs.GetInt("KeyboardMouseSettings_MouseSensitivity", 1);
+                sensY = 2 * BetterPrefs.GetInt("KeyboardMouseSettings_MouseSensitivity", 1);
+            }
+
+            if (BetterPrefs.GetBool("DeferredRendering", false))
+            {
+                URPCamData.SetRenderer(2);
             }
         }
 
@@ -66,15 +74,14 @@ namespace KillItMyself.Runtime
                 return;
             }
 
-            Vector2 rotateDirection = playerControls.actions["Camera"].ReadValue<Vector2>();
+            Vector2 rotateDirection = CameraInput.ReadValue<Vector2>();
 
             yRotation += rotateDirection.x * sensX * Time.fixedDeltaTime;
             xRotation -= rotateDirection.y * sensY * Time.fixedDeltaTime;
             xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-            //Rotate camera and orientation
+            //Rotate camera and playermodel
             transform.rotation = Quaternion.Euler(xRotation, yRotation, 0);
-            orientation.rotation = Quaternion.Euler(0, yRotation, 0);
 
             playerModel.rotation = Quaternion.Euler(0, yRotation, 0);
         }

@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -8,21 +7,10 @@ namespace KillItMyself.Runtime
 {
     public static class BeanLogger
     {
-        public static bool VerboseLoggingEnabled;
-        
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        public static void CheckArg()
-        {
-            if (Environment.CommandLine.Contains("-verbose") || Application.isEditor)
-            {
-                VerboseLoggingEnabled = true;
-            }
-        }
-        
         public static void Log(string text, Object source)
         {
             string logString;
-            if (VerboseLoggingEnabled)
+            if (CommandLineArgs.VerboseLoggingEnabled)
             {
                 StackFrame frame = new(1, true);
                 string method = frame.GetMethod().Name;
@@ -40,7 +28,7 @@ namespace KillItMyself.Runtime
         public static void LogError(string text, Object source)
         {
             string logString;
-            if (VerboseLoggingEnabled)
+            if (CommandLineArgs.VerboseLoggingEnabled)
             {
                 StackFrame frame = new(1, true);
                 string method = frame.GetMethod().Name;
@@ -58,7 +46,7 @@ namespace KillItMyself.Runtime
         public static void LogWarning(string text, Object source)
         {
             string logString;
-            if (VerboseLoggingEnabled)
+            if (CommandLineArgs.VerboseLoggingEnabled)
             {
                 StackFrame frame = new(1, true);
                 string method = frame.GetMethod().Name;

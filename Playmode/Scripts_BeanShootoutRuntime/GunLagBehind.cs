@@ -8,6 +8,7 @@ namespace KillItMyself.Runtime
         [SerializeField] private RectTransform rt;
 
         [SerializeField] private PlayerInput playerControls;
+        private InputAction CameraInput;
 
         [SerializeField] private float swayAmount;
         [SerializeField] private float maxSwayAmount;
@@ -18,11 +19,13 @@ namespace KillItMyself.Runtime
         private void Start()
         {
             initialRotation = rt.localRotation;
+
+            CameraInput = playerControls.actions["Camera"];
         }
 
         private void Update()
         {
-            Vector2 rotateDirection = playerControls.actions["Camera"].ReadValue<Vector2>();
+            Vector2 rotateDirection = CameraInput.ReadValue<Vector2>();
 
             rotateDirection = new Vector2(Mathf.Clamp(rotateDirection.x, -maxSwayAmount, maxSwayAmount), Mathf.Clamp(rotateDirection.y, -maxSwayAmount, maxSwayAmount));
 
