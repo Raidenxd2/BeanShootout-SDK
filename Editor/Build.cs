@@ -70,10 +70,6 @@ public class Build : EditorWindow
             Process GameProcess = new();
             GameProcess.StartInfo.FileName = config.GamePath + "/BeanShootout.exe";
             string args = "";
-            if (config.DebugMode)
-            {
-                args += " -Debug";
-            }
             if (config.FastLoad)
             {
                 args += " -FastLoad true";

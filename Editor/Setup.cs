@@ -1,12 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
+using System.Linq;
 using UnityEditor;
-using UnityEditor.Build.Profile;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [InitializeOnLoad]
-public class Setup : EditorWindow
+public class Setup
 {
     static Setup()
     {
@@ -28,79 +29,124 @@ public class Setup : EditorWindow
 
         if (!newSystemBackendsEnabled)
         {
-            if (EditorUtility.DisplayDialog(Constants.PackageName, "This project is currently configured to use the legacy Input Manager, which is not supported by Bean Shootout. Do you want to change the active input handling to the Input System? This will restart the Unity Editor.", "Yes", "No"))
+            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, "This project is currently configured to use the legacy Input Manager, which is not supported by Bean Shootout. Do you want to change the active input handling to the Input System? This will restart the Unity Editor.", "Yes", "No", DialogIconType.Warning))
             {
                 EnableNewBackends();
+
+                return;
             }
         }
 
         if (newSystemBackendsEnabled && oldSystemBackendsEnabled)
         {
-            if (EditorUtility.DisplayDialog(Constants.PackageName, "This project is currently configured to use both the legacy Input Manager and the new Input System. The legacy Input Manager is not supported by Bean Shootout. Do you want to change the active input handling to be only the new Input System? this will restart the Unity Editor.", "Yes", "No"))
+            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, "This project is currently configured to use both the legacy Input Manager and the new Input System. The legacy Input Manager is not supported by Bean Shootout. Do you want to change the active input handling to be only the new Input System? this will restart the Unity Editor.", "Yes", "No", DialogIconType.Warning))
             {
                 EnableNewBackends();
+
+                return;
             }
         }
 
-        ShowWindow();
+        if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, "You have just installed the Bean Shootout SDK, it is highly recommended that you install this package in an empty Unity project. Do you want to setup this project for the SDK?", "Yes", "No", DialogIconType.Info))
+        {
+            try
+            {
+                SerializedObject tagManager = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+
+                SerializedProperty layers = tagManager.FindProperty("layers");
+                if (layers == null)
+                {
+                    SetupErrorDialog("layers was null");
+                    return;
+                }
+
+                List<LayerValue> layerValues = new();
+                layerValues.Add(new(6, "Ground"));
+                layerValues.Add(new(7, "PlayerCollision"));
+                layerValues.Add(new(8, "MinimapOnly"));
+                layerValues.Add(new(9, "MinimapNoRenderGround"));
+                layerValues.Add(new(10, "MinimapNoRenderDefault"));
+                layerValues.Add(new(11, "Mover"));
+                layerValues.Add(new(12, "BombCollision"));
+                layerValues.Add(new(13, "Player"));
+                layerValues.Add(new(14, "MinimapNoRenderGround2"));
+                layerValues.Add(new(15, "Bossfight/JumbotronScreen"));
+                layerValues.Add(new(16, "Canon"));
+                layerValues.Add(new(17, "Cutscene"));
+                layerValues.Add(new(18, "WinnersGenericLevel"));
+
+                foreach (var layerValue in layerValues)
+                {
+                    SerializedProperty layerSP = layers.GetArrayElementAtIndex(layerValue.LayerIndex);
+                    layerSP.stringValue = layerValue.LayerName;
+                }
+
+                tagManager.ApplyModifiedProperties();
+                
+                // Windows GraphicsAPI
+                GraphicsDeviceType[] requiredGDTWindows = {GraphicsDeviceType.Direct3D11, GraphicsDeviceType.Direct3D12, GraphicsDeviceType.Vulkan};
+                PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows, false);
+                PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
+                PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, requiredGDTWindows);
+                PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows, requiredGDTWindows);
+                
+                // Linux GraphicsAPI
+                GraphicsDeviceType[] requiredGDTLinux = { GraphicsDeviceType.Vulkan };
+                PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneLinux64, false);
+                PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneLinux64, requiredGDTLinux);
+
+                // macOS GraphicsAPI
+                GraphicsDeviceType[] requiredGDTMac = { GraphicsDeviceType.Metal };
+                PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneOSX, false);
+                PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneOSX, requiredGDTMac);
+
+                Physics.gravity = new(0, -15.82f, 0);
+
+                EditorSettings.spritePackerMode = SpritePackerMode.SpriteAtlasV2;
+                
+                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/GraphicsSettings.asset", Application.dataPath + "/../ProjectSettings/GraphicsSettings.asset", true);
+                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/URPProjectSettings.asset", Application.dataPath + "/../ProjectSettings/URPProjectSettings.asset", true);
+                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/QualitySettings.asset", Application.dataPath + "/../ProjectSettings/QualitySettings.asset", true);
+                
+                File.WriteAllText("Assets/DO_NOT_DELETE_THIS_BeanShootout", "This file is used to check if setup has been done. Do not delete this file.");
+                
+                EditorApplication.OpenProject(Directory.GetCurrentDirectory());
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        }
+    }
+
+    private static void SetupErrorDialog(string error)
+    {
+        Debug.LogError(error);
+        EditorUtility.DisplayDialog(Constants.PackageName, "An error occurred during the setup process. Please check the console for details.", "OK");
     }
 
     public static void EnableNewBackends()
     {
         newSystemBackendsEnabled = true;
         oldSystemBackendsEnabled = false;
+        
+        AssetDatabase.Refresh();
+        AssetDatabase.SaveAssets();
 
         EditorApplication.OpenProject(Directory.GetCurrentDirectory());
-    }
-
-    [MenuItem("Bean Shootout/Setup...")]
-    public static void ShowWindow()
-    {
-        EditorWindow window = GetWindow(typeof(Setup));
-        window.minSize = new(525, 90);
-        window.maxSize = new(525, 90);
-    }
-
-    private void OnGUI()
-    {
-        GUILayout.Label("This seems to be your first time using this package. In order to properly use this package, you must setup your project for it. Press the 'Setup/Update' button to setup your project.\n\nIt's highly recommended to not use this on an existing project.", EditorStyles.wordWrappedLabel);
-
-        if (GUILayout.Button("Setup/Update"))
-        {
-            // Copys certain Project Settings from the package to the project's ProjectSettings folder
-            if (EditorUtility.DisplayDialog(Constants.PackageName, "Are you sure you want to setup your project for this package? WARNING: This will overwrite most Project Settings and the Editor will restart.", "Yes", "No"))
-            {
-                EditorUtility.DisplayProgressBar(Constants.PackageName, "Setting up...", 0);
-                
-                Directory.CreateDirectory("Assets/Levels");
-
-                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/TagManager.asset", Application.dataPath + "/../ProjectSettings/TagManager.asset", true);
-                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/DynamicsManager.asset", Application.dataPath + "/../ProjectSettings/DynamicsManager.asset", true);
-                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/GraphicsSettings.asset", Application.dataPath + "/../ProjectSettings/GraphicsSettings.asset", true);
-                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/Physics2DSettings.asset", Application.dataPath + "/../ProjectSettings/Physics2DSettings.asset", true);
-                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/URPProjectSettings.asset", Application.dataPath + "/../ProjectSettings/URPProjectSettings.asset", true);
-                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/QualitySettings.asset", Application.dataPath + "/../ProjectSettings/QualitySettings.asset", true);
-
-                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/UniversalRenderPipelineGlobalSettings.asset~", Application.dataPath + "/UniversalRenderPipelineGlobalSettings.asset", true);
-                File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/UniversalRenderPipelineGlobalSettings.asset.meta~", Application.dataPath + "/UniversalRenderPipelineGlobalSettings.asset.meta", true);
-
-                EditorUtility.DisplayDialog(Constants.PackageName, "If a dialog says something about the Input System, press Yes on it.", "OK");
-
-                File.WriteAllText(Application.dataPath + "/DO_NOT_DELETE_THIS_BeanShootout", "");
-
-                EditorApplication.OpenProject(Directory.GetCurrentDirectory());
-            }
-        }
     }
 
     // Creates an config if it doesn't exist
     public static void CreateConfig()
     {
-        Debug.Log("(BeanShootout) Creating config");
-        BeanShootoutConfigSO config = ScriptableObject.CreateInstance<BeanShootoutConfigSO>();
+        if (!File.Exists("Assets/BeanShootoutConfig.asset"))
+        {
+            Debug.Log("(BeanShootout) Creating config");
+            BeanShootoutConfigSO config = ScriptableObject.CreateInstance<BeanShootoutConfigSO>();
 
-        AssetDatabase.CreateAsset(config, "Assets/BeanShootoutConfig.asset");
-        AssetDatabase.SaveAssets();
+            AssetDatabase.CreateAsset(config, "Assets/BeanShootoutConfig.asset");
+            AssetDatabase.SaveAssets();
+        }
     }
 
     /// <summary>
@@ -111,17 +157,11 @@ public class Setup : EditorWindow
     {
         get
         {
-#if UNITY_2020_2_OR_NEWER
             var property = GetPropertyOrNull(kActiveInputHandler);
             return property == null || ActiveInputHandlerToTuple(property.intValue).newSystemEnabled;
-#else
-                var property = GetPropertyOrNull(kEnableNewSystemProperty);
-                return property == null || property.boolValue;
-#endif
         }
         set
         {
-#if UNITY_2020_2_OR_NEWER
             var property = GetPropertyOrNull(kActiveInputHandler);
             if (property != null)
             {
@@ -134,22 +174,8 @@ public class Setup : EditorWindow
             {
                 Debug.LogError($"Cannot find '{kActiveInputHandler}' in player settings");
             }
-#else
-                var property = GetPropertyOrNull(kEnableNewSystemProperty);
-                if (property != null)
-                {
-                    property.boolValue = value;
-                    property.serializedObject.ApplyModifiedProperties();
-                }
-                else
-                {
-                    Debug.LogError($"Cannot find '{kEnableNewSystemProperty}' in player settings");
-                }
-#endif
         }
     }
-
-
 
     /// <summary>
     /// Whether the backends for the old input system are enabled in the
@@ -159,17 +185,11 @@ public class Setup : EditorWindow
     {
         get
         {
-#if UNITY_2020_2_OR_NEWER
             var property = GetPropertyOrNull(kActiveInputHandler);
             return property == null || ActiveInputHandlerToTuple(property.intValue).oldSystemEnabled;
-#else
-                var property = GetPropertyOrNull(kDisableOldSystemProperty);
-                return property == null || !property.boolValue;
-#endif
         }
         set
         {
-#if UNITY_2020_2_OR_NEWER
             var property = GetPropertyOrNull(kActiveInputHandler);
             if (property != null)
             {
@@ -182,22 +202,9 @@ public class Setup : EditorWindow
             {
                 Debug.LogError($"Cannot find '{kActiveInputHandler}' in player settings");
             }
-#else
-                var property = GetPropertyOrNull(kDisableOldSystemProperty);
-                if (property != null)
-                {
-                    property.boolValue = !value;
-                    property.serializedObject.ApplyModifiedProperties();
-                }
-                else
-                {
-                    Debug.LogError($"Cannot find '{kDisableOldSystemProperty}' in player settings");
-                }
-#endif
         }
     }
 
-#if UNITY_2020_2_OR_NEWER
     private const string kActiveInputHandler = "activeInputHandler";
 
     private enum InputHandler
@@ -244,40 +251,10 @@ public class Setup : EditorWindow
         }
     }
 
-#else
-        private const string kEnableNewSystemProperty = "enableNativePlatformBackendsForNewInputSystem";
-        private const string kDisableOldSystemProperty = "disableOldInputManagerSupport";
-#endif
-
     private static SerializedProperty GetPropertyOrNull(string name)
     {
-#if UNITY_6000_0_OR_NEWER
-        // HOTFIX: the code below works around an issue causing an infinite reimport loop
-        // this will be replaced by a call to an API in the editor instead of using reflection once it is available
-        var buildProfileType = typeof(BuildProfile);
-        var globalPlayerSettingsField = buildProfileType.GetField("s_GlobalPlayerSettings", BindingFlags.Static | BindingFlags.NonPublic);
-        if (globalPlayerSettingsField == null)
-        {
-            Debug.LogError($"Could not find global player settings field in build profile when trying to get property {name}. Please try to update the Input System package.");
-            return null;
-        }
-        var playerSettings = (PlayerSettings)globalPlayerSettingsField.GetValue(null);
-        var activeBuildProfile = BuildProfile.GetActiveBuildProfile();
-        if (activeBuildProfile != null)
-        {
-            var playerSettingsOverrideField = buildProfileType.GetField("m_PlayerSettings", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (playerSettingsOverrideField == null)
-            {
-                Debug.LogError($"Could not find player settings override field in build profile when trying to get property {name}. Please try to update the Input System package.");
-                return null;
-            }
-            var playerSettingsOverride = (PlayerSettings)playerSettingsOverrideField.GetValue(activeBuildProfile);
-            if (playerSettingsOverride != null)
-                playerSettings = playerSettingsOverride;
-        }
-#else
-            var playerSettings = Resources.FindObjectsOfTypeAll<PlayerSettings>().FirstOrDefault();
-#endif
+        var playerSettings = Resources.FindObjectsOfTypeAll<PlayerSettings>().FirstOrDefault();
+        
         if (playerSettings == null)
             return null;
         var playerSettingsObject = new SerializedObject(playerSettings);

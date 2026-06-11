@@ -6,8 +6,8 @@ QualitySettings:
   serializedVersion: 5
   m_CurrentQuality: 0
   m_QualitySettings:
-  - serializedVersion: 4
-    name: Default-PC
+  - serializedVersion: 5
+    name: Default
     pixelLightCount: 2
     shadows: 2
     shadowResolution: 1
@@ -22,27 +22,28 @@ QualitySettings:
     globalTextureMipmapLimit: 0
     textureMipmapLimitSettings: []
     anisotropicTextures: 2
-    antiAliasing: 0
+    antiAliasing: 2
     softParticles: 0
     softVegetation: 1
     realtimeReflectionProbes: 1
     billboardsFaceCameraPosition: 0
     useLegacyDetailDistribution: 0
     adaptiveVsync: 0
-    vSyncCount: 0
+    vSyncCount: 1
     realtimeGICPUUsage: 25
     adaptiveVsyncExtraA: 0
     adaptiveVsyncExtraB: 0
     lodBias: 2.5
+    meshLodThreshold: 100
     maximumLODLevel: 0
     enableLODCrossFade: 0
     streamingMipmapsActive: 1
     streamingMipmapsAddAllCameras: 0
-    streamingMipmapsMemoryBudget: 512
+    streamingMipmapsMemoryBudget: 2048
     streamingMipmapsRenderersPerFrame: 1024
-    streamingMipmapsMaxLevelReduction: 2
-    streamingMipmapsMaxFileIORequests: 1024
-    particleRaycastBudget: 64
+    streamingMipmapsMaxLevelReduction: 3
+    streamingMipmapsMaxFileIORequests: 512
+    particleRaycastBudget: 16
     asyncUploadTimeSlice: 4
     asyncUploadBufferSize: 16
     asyncUploadPersistentBuffer: 1
@@ -62,8 +63,8 @@ QualitySettings:
     - Android
     - Server
     - WebGL
-  - serializedVersion: 4
-    name: Default-PC-SSAO
+  - serializedVersion: 5
+    name: Default_Shader
     pixelLightCount: 2
     shadows: 2
     shadowResolution: 1
@@ -78,7 +79,7 @@ QualitySettings:
     globalTextureMipmapLimit: 0
     textureMipmapLimitSettings: []
     anisotropicTextures: 2
-    antiAliasing: 4
+    antiAliasing: 2
     softParticles: 0
     softVegetation: 1
     realtimeReflectionProbes: 1
@@ -90,6 +91,7 @@ QualitySettings:
     adaptiveVsyncExtraA: 0
     adaptiveVsyncExtraB: 0
     lodBias: 2.5
+    meshLodThreshold: 1
     maximumLODLevel: 0
     enableLODCrossFade: 0
     streamingMipmapsActive: 1
@@ -103,7 +105,7 @@ QualitySettings:
     asyncUploadBufferSize: 16
     asyncUploadPersistentBuffer: 1
     resolutionScalingFixedDPIFactor: 1
-    customRenderPipeline: {fileID: 11400000, guid: 7b7fd9122c28c4d15b667c7040e3b3fd,
+    customRenderPipeline: {fileID: 11400000, guid: 9ced162e1c619674eba14970452b130c,
       type: 2}
     terrainQualityOverrides: 0
     terrainPixelError: 1
@@ -126,6 +128,7 @@ QualitySettings:
     GameCoreXboxOne: 0
     Lumin: 0
     Nintendo Switch: 0
+    Nintendo Switch 2: 0
     PS4: 0
     PS5: 0
     Server: 0

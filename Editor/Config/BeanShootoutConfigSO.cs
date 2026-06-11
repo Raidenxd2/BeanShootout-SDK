@@ -7,8 +7,6 @@ public class BeanShootoutConfigSO : ScriptableObject
     [Tooltip("Used for build and run.")]
     public string GamePath;
 
-    [Tooltip("Enables debugging features.")]
-    public bool DebugMode;
     [Tooltip("Skips certain parts of loading, such as mod loading and loading screens.")]
     public bool FastLoad;
     [Tooltip("Enables verbose logging.")]
@@ -31,7 +29,6 @@ public class BeanShootoutConfigSO_Inspector : Editor
 
     // Properties
     private SerializedProperty GamePath;
-    private SerializedProperty DebugMode;
     private SerializedProperty FastLoad;
     private SerializedProperty VerboseLogging;
     private SerializedProperty FullscreenWhenTheresNoOtherPlayers;
@@ -46,7 +43,6 @@ public class BeanShootoutConfigSO_Inspector : Editor
 
         // Get properties
         GamePath = serializedObject.FindProperty("GamePath");
-        DebugMode = serializedObject.FindProperty("DebugMode");
         FastLoad = serializedObject.FindProperty("FastLoad");
         VerboseLogging = serializedObject.FindProperty("VerboseLogging");
         FullscreenWhenTheresNoOtherPlayers = serializedObject.FindProperty("FullscreenWhenTheresNoOtherPlayers");
@@ -120,7 +116,6 @@ public class BeanShootoutConfigSO_Inspector : Editor
         GUILayout.FlexibleSpace();
         EditorGUILayout.EndHorizontal();
 
-        EditorGUILayout.PropertyField(DebugMode);
         EditorGUILayout.PropertyField(FastLoad);
         EditorGUILayout.PropertyField(VerboseLogging);
 
