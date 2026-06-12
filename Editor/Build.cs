@@ -36,18 +36,18 @@ public class Build : EditorWindow
 
         if (GUILayout.Button("Build and Run for Windows"))
         {
-            BeanShootoutConfigSO config = AssetDatabase.LoadAssetAtPath<BeanShootoutConfigSO>("Assets/BeanShootoutConfig.asset");
+            BeanShootoutConfigSO config = AssetDatabase.LoadAssetAtPath<BeanShootoutConfigSO>(Strings.ConfigPath);
 
             // If the game path specified isn't valid or if the build isn't valid then fail.
             if (string.IsNullOrEmpty(config.GamePath))
             {
-                EditorUtility.DisplayDialog("Error", "Please set a Game Path in the config!", "OK");
+                EditorDialog.DisplayAlertDialog(Constants.PackageName, Strings.Build_NoGamePath, "OK", DialogIconType.Error);
                 return;
             }
 
             if (!config.IsValid)
             {
-                EditorUtility.DisplayDialog("Error", "Game Path isn't valid.\n" + config.ValidReason, "OK");
+                EditorDialog.DisplayAlertDialog(Constants.PackageName, string.Format(Strings.Build_GamePathInvalid, config.ValidReason), "OK", DialogIconType.Error);
                 return;
             }
 
@@ -56,8 +56,6 @@ public class Build : EditorWindow
             string SceneName = EditorSceneManager.GetActiveScene().name;
 
             Debug.Log("(BeanShootout) Running level");
-
-            EditorUtility.DisplayProgressBar(Constants.PackageName, "Running level...", 0);
 
             // Gets the PersistentDataPath of Bean Shootout to copy the level bundles into. (AppData\LocalLow\OneWing\The Great Bean Shootout\Mods\LevelLocalBuild)
             string LevelLocalBuildFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow", "OneWing", "The Great Bean Shootout", "Mods", "LevelLocalBuild") + "\\";
@@ -81,8 +79,6 @@ public class Build : EditorWindow
             args += " -loadlevellocalbuild -gs_fnop " + config.FullscreenWhenTheresNoOtherPlayers + " -gs_sm " + config.ShowMinimap + " -gs_ma " + config.MaxAmmo + " -ga_mp " + config.MaxPlayers + " -gs_sa " + config.SharedAmmo;
             GameProcess.StartInfo.Arguments = args;
             GameProcess.Start();
-
-            EditorUtility.ClearProgressBar();
         }
 
         if (GUILayout.Button("Build for Mac"))
@@ -110,10 +106,9 @@ public class Build : EditorWindow
 
         if (GUILayout.Button("Cleanup build folders for all levels"))
         {
-            if (EditorUtility.DisplayDialog(Constants.PackageName, "Are you sure you want to cleanup build folders for all levels?\nThis will delete all built files.", "Yes", "No"))
+            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, Strings.Build_CleanupAllBuildFolders, "Yes", "No", DialogIconType.Info))
             {
                 Debug.Log("(BeanShootout) Cleaning build folders");
-                EditorUtility.DisplayProgressBar(Constants.PackageName, "Cleaning build folders...", 0);
 
                 string[] levelDirs = Directory.GetDirectories("Assets/Levels");
                 foreach (var item in levelDirs)
@@ -141,17 +136,14 @@ public class Build : EditorWindow
 
                     AssetDatabase.Refresh();
                 }
-
-                EditorUtility.ClearProgressBar();
             }
         }
 
         if (GUILayout.Button("Cleanup build folders for the current level"))
         {
-            if (EditorUtility.DisplayDialog(Constants.PackageName, "Are you sure you want to cleanup build folders for the current level?\nThis will delete all built files.", "Yes", "No"))
+            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, Strings.Build_CleanupCurrentLevelBuildFolders, "Yes", "No", DialogIconType.Info))
             {
                 Debug.Log("(BeanShootout) Cleaning build folders");
-                EditorUtility.DisplayProgressBar(Constants.PackageName, "Cleaning build folders...", 0);
 
                 string item = "Assets/Levels/" + EditorSceneManager.GetActiveScene().name;
 
@@ -177,16 +169,12 @@ public class Build : EditorWindow
                 }
 
                 AssetDatabase.Refresh();
-
-                EditorUtility.ClearProgressBar();
             }
         }
     }
 
     private void BuildLevel(CompressionType ct, BuildTarget target, string BuildPathName)
     {
-        EditorUtility.DisplayProgressBar(Constants.PackageName, "Preparing build...", 0);
-
         // Makes sure that the correct GraphicsAPIs are set
         if (target == BuildTarget.StandaloneWindows || target == BuildTarget.StandaloneWindows64)
         {
@@ -194,7 +182,7 @@ public class Build : EditorWindow
             if (!PlayerSettings.GetGraphicsAPIs(BuildTarget.StandaloneWindows64).Contains(GraphicsDeviceType.Direct3D11) || !PlayerSettings.GetGraphicsAPIs(BuildTarget.StandaloneWindows64).Contains(GraphicsDeviceType.Direct3D12) || !PlayerSettings.GetGraphicsAPIs(BuildTarget.StandaloneWindows64).Contains(GraphicsDeviceType.Vulkan))
             {
                 // The build requires the GraphicsAPIs to be set to the same as Bean Shootout, otherwise levels may be incompatible with certain GraphicsAPIs or systems
-                if (EditorUtility.DisplayDialog(Constants.PackageName, "The GraphicsAPI setting for Windows are not set to the required values (Direct3D 11, Direct3D 12, and Vulkan). You must support these GraphicsAPIs. Do you want to configure them automatically?", "Yes", "No"))
+                if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, Strings.Build_InvalidWindowsGraphicsAPIs, "Yes", "No", DialogIconType.Warning))
                 {
                     PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows, false);
                     PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
@@ -203,8 +191,6 @@ public class Build : EditorWindow
                 }
                 else
                 {
-                    EditorUtility.ClearProgressBar();
-
                     Debug.LogError("Build Failed: The GraphicsAPI setting for Windows are not set to the required values.");
 
                     return;
@@ -231,8 +217,6 @@ public class Build : EditorWindow
 
         AssetBundleUtils.BuildAssetBundlesByName(new[] { SceneName.ToLower() + "_ab", SceneName.ToLower() + "_info" }, "Assets/Levels/" + SceneName + "/" + BuildPathName, target, ct);
 
-        EditorUtility.DisplayProgressBar(Constants.PackageName, "Finishing build...", 0);
-
         // Copys the built AssetBundles with names the game uses
         File.Move("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName.ToLower() + "_ab", "Assets/Levels/" + SceneName + "/level_data.bundle");
         File.Move("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName.ToLower() + "_info", "Assets/Levels/" + SceneName + "/level_info.bundle");
@@ -246,9 +230,7 @@ public class Build : EditorWindow
 
         AssetDatabase.Refresh();
 
-        EditorUtility.ClearProgressBar();
-
-        EditorUtility.DisplayDialog(Constants.PackageName, "Build created under Assets/Levels/" + SceneName + "/" + BuildPathName + "/", "OK");
+        EditorDialog.DisplayAlertDialog(Constants.PackageName, string.Format(Strings.Build_Finished, "Assets/Levels/" + SceneName + "/" + BuildPathName + "/"), "OK", DialogIconType.Info);
     }
 }
 

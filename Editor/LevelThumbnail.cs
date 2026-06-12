@@ -77,11 +77,11 @@ public class LevelThumbnail : EditorWindow
             EditorUtility.SetDirty(importer);
             importer.SaveAndReimport();
             
-            EditorDialog.DisplayAlertDialog(Constants.PackageName, "Created thumbnail under 'Assets/Levels/" + CurrentSceneName + "/image.png'", "OK", DialogIconType.Info);
+            EditorDialog.DisplayAlertDialog(Constants.PackageName, string.Format(Strings.LevelThumbnail_Created, "'Assets/Levels/" + CurrentSceneName + "/image.png'"), "OK", DialogIconType.Info);
         }
         else
         {
-            EditorDialog.DisplayAlertDialog(Constants.PackageName, "Failed to save level thumbnail.", "OK", DialogIconType.Error);
+            EditorDialog.DisplayAlertDialog(Constants.PackageName, Strings.LevelThumbnail_Failed, "OK", DialogIconType.Error);
         }
     }
     

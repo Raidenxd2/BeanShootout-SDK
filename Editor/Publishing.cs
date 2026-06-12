@@ -61,8 +61,8 @@ public class Publishing : EditorWindow
         File.Move("Assets/Levels/" + SceneName + "-win64.zip", "Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip");
 
         AssetDatabase.Refresh();
-
-        EditorUtility.DisplayDialog("Message", "Created Zip file under 'Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip", "OK");
+        
+        EditorDialog.DisplayAlertDialog(Constants.PackageName, string.Format(Strings.Publishing_Created, "'Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip'"), "OK", DialogIconType.Info);
 
         EditorUtility.ClearProgressBar();
     }

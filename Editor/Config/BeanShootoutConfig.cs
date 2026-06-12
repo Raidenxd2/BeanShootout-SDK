@@ -8,11 +8,11 @@ public class BeanShootoutConfig
     [MenuItem("Bean Shootout/_Config")]
     public static void ViewConfigAsset()
     {
-        if (!File.Exists("Assets/BeanShootoutConfig.asset"))
+        if (!File.Exists(Strings.ConfigPath))
         {
             Setup.CreateConfig();
         }
 
-        Selection.activeObject = AssetDatabase.LoadAssetAtPath<Object>("Assets/BeanShootoutConfig.asset");
+        Selection.activeObject = AssetDatabase.LoadAssetAtPath<Object>(Strings.ConfigPath);
     }
 }

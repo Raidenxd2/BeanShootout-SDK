@@ -37,7 +37,7 @@ public class LevelCreator : EditorWindow
 
             if (File.Exists("Assets/Levels/" + LevelName + "/" + LevelName + ".unity"))
             {
-                EditorUtility.DisplayDialog("Error", "This level already exists!", "OK");
+                EditorDialog.DisplayAlertDialog(Constants.PackageName, Strings.LevelCreator_AlreadyExists, "OK", DialogIconType.Error);
                 return;
             }
 

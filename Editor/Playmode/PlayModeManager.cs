@@ -37,7 +37,7 @@ public class PlayModeManager : Editor
         string savePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow") + "/OneWing/The Great Bean Shootout/Saves/Default.bean";
         if (!File.Exists(savePath))
         {
-            EditorUtility.DisplayDialog(Constants.PackageName, "Warning: The default save file doesn't exist at " + savePath + ". A blank save file will be used instead.", "OK");
+            EditorDialog.DisplayAlertDialog(Constants.PackageName, string.Format(Strings.PlayMode_NoSaveFile, savePath), "OK", DialogIconType.Warning);
         }
 
         BetterPrefs.Load(savePath);

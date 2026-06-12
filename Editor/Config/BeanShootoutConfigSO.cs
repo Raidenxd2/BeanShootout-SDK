@@ -81,8 +81,8 @@ public class BeanShootoutConfigSO_Inspector : Editor
             if (!DataPathExists)
             {
                 config.IsValid = false;
-                config.ValidReason = "Game Path doesn't contain 'BeanShootout_Data', you may not have selected where the game is located.";
-                EditorUtility.DisplayDialog("Error", "Game Path doesn't contain 'BeanShootout_Data', you may not have selected where the game is located.", "OK");
+                config.ValidReason = Strings.Config_NoDataFolder;
+                EditorDialog.DisplayAlertDialog(Constants.PackageName, Strings.Config_NoDataFolder, "OK", DialogIconType.Error);
 
                 return;
             }
@@ -96,8 +96,8 @@ public class BeanShootoutConfigSO_Inspector : Editor
             if (!SupportFileExists)
             {
                 config.IsValid = false;
-                config.ValidReason = "This game version doesn't support Build and Run, please make sure you have game version 1.0.0-PublicRelease or higher.";
-                EditorUtility.DisplayDialog("Error", "This game version doesn't support Build and Run, please make sure you have game version 1.0.0-PublicRelease or higher.", "OK");
+                config.ValidReason = Strings.Config_NoSupportFile;
+                EditorDialog.DisplayAlertDialog(Constants.PackageName, Strings.Config_NoSupportFile, "OK", DialogIconType.Error);
                 
                 return;
             }

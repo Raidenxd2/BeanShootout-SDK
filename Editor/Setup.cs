@@ -11,19 +11,19 @@ public class Setup
 {
     static Setup()
     {
-        if (!File.Exists("Assets/DO_NOT_DELETE_THIS_BeanShootout"))
+        if (!File.Exists(Strings.SetupFilePath))
         {
             InitialSetup();
         }
 
-        if (!File.Exists("Assets/BeanShootoutConfig.asset"))
+        if (!File.Exists(Strings.ConfigPath))
         {
             CreateConfig();
         }
         
         if (PlayerSettings.colorSpace != ColorSpace.Linear)
         {
-            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, "This project is currently using the Gamma color space. This will cause the color in-game to look off, and is also unsupported. Would you like to change the color space to Linear?", "Yes", "No", DialogIconType.Warning))
+            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, Strings.Setup_GammaColorSpace, "Yes", "No", DialogIconType.Warning))
             {
                 PlayerSettings.colorSpace = ColorSpace.Linear;
             }
@@ -37,7 +37,7 @@ public class Setup
 
         if (!newSystemBackendsEnabled)
         {
-            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, "This project is currently configured to use the legacy Input Manager, which is not supported by Bean Shootout. Do you want to change the active input handling to the Input System? This will restart the Unity Editor.", "Yes", "No", DialogIconType.Warning))
+            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, Strings.Setup_LegacyInput, "Yes", "No", DialogIconType.Warning))
             {
                 EnableNewBackends();
 
@@ -47,7 +47,7 @@ public class Setup
 
         if (newSystemBackendsEnabled && oldSystemBackendsEnabled)
         {
-            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, "This project is currently configured to use both the legacy Input Manager and the new Input System. The legacy Input Manager is not supported by Bean Shootout. Do you want to change the active input handling to be only the new Input System? this will restart the Unity Editor.", "Yes", "No", DialogIconType.Warning))
+            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, Strings.Setup_BothLegacyInputAndInputSystem, "Yes", "No", DialogIconType.Warning))
             {
                 EnableNewBackends();
 
@@ -55,7 +55,7 @@ public class Setup
             }
         }
 
-        if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, "You have just installed the Bean Shootout SDK, it is highly recommended that you install this package in an empty Unity project. Do you want to setup this project for the SDK?", "Yes", "No", DialogIconType.Info))
+        if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, Strings.Setup_InstalledPackage, "Yes", "No", DialogIconType.Info))
         {
             try
             {
@@ -118,13 +118,13 @@ public class Setup
                 File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/URPProjectSettings.asset", Application.dataPath + "/../ProjectSettings/URPProjectSettings.asset", true);
                 File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/QualitySettings.asset", Application.dataPath + "/../ProjectSettings/QualitySettings.asset", true);
                 
-                File.WriteAllText("Assets/DO_NOT_DELETE_THIS_BeanShootout", "This file is used to check if setup has been done. Do not delete this file.");
+                File.WriteAllText(Strings.SetupFilePath, Strings.Setup_SetupFileContent);
                 
                 EditorApplication.OpenProject(Directory.GetCurrentDirectory());
             }
             catch (Exception ex)
             {
-                EditorDialog.DisplayAlertDialog(Constants.PackageName, "Failed to setup project.\n" + ex, "OK", DialogIconType.Error);
+                EditorDialog.DisplayAlertDialog(Constants.PackageName, Strings.Setup_Failed + "\n" + ex, "OK", DialogIconType.Error);
                 
                 Debug.LogException(ex);
             }
@@ -134,7 +134,7 @@ public class Setup
     private static void SetupErrorDialog(string error)
     {
         Debug.LogError(error);
-        EditorUtility.DisplayDialog(Constants.PackageName, "An error occurred during the setup process. Please check the console for details.", "OK");
+        EditorDialog.DisplayAlertDialog(Constants.PackageName, Strings.Setup_Failed, "OK", DialogIconType.Error);
     }
 
     public static void EnableNewBackends()
@@ -151,12 +151,12 @@ public class Setup
     // Creates an config if it doesn't exist
     public static void CreateConfig()
     {
-        if (!File.Exists("Assets/BeanShootoutConfig.asset"))
+        if (!File.Exists(Strings.ConfigPath))
         {
             Debug.Log("(BeanShootout) Creating config");
             BeanShootoutConfigSO config = ScriptableObject.CreateInstance<BeanShootoutConfigSO>();
 
-            AssetDatabase.CreateAsset(config, "Assets/BeanShootoutConfig.asset");
+            AssetDatabase.CreateAsset(config, Strings.ConfigPath);
             AssetDatabase.SaveAssets();
         }
     }
