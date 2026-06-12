@@ -20,6 +20,14 @@ public class Setup
         {
             CreateConfig();
         }
+        
+        if (PlayerSettings.colorSpace != ColorSpace.Linear)
+        {
+            if (EditorDialog.DisplayDecisionDialog(Constants.PackageName, "This project is currently using the Gamma color space. This will cause the color in-game to look off, and is also unsupported. Would you like to change the color space to Linear?", "Yes", "No", DialogIconType.Warning))
+            {
+                PlayerSettings.colorSpace = ColorSpace.Linear;
+            }
+        }
     }
 
     [MenuItem("Bean Shootout/Dev/Force initial setup")]
@@ -103,6 +111,8 @@ public class Setup
                 Physics.gravity = new(0, -15.82f, 0);
 
                 EditorSettings.spritePackerMode = SpritePackerMode.SpriteAtlasV2;
+
+                PlayerSettings.colorSpace = ColorSpace.Linear;
                 
                 File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/GraphicsSettings.asset", Application.dataPath + "/../ProjectSettings/GraphicsSettings.asset", true);
                 File.Copy("Packages/com.onewing.beanshootout-customlevels/Editor/Setup/ProjectSettings~/URPProjectSettings.asset", Application.dataPath + "/../ProjectSettings/URPProjectSettings.asset", true);
@@ -114,6 +124,8 @@ public class Setup
             }
             catch (Exception ex)
             {
+                EditorDialog.DisplayAlertDialog(Constants.PackageName, "Failed to setup project.\n" + ex, "OK", DialogIconType.Error);
+                
                 Debug.LogException(ex);
             }
         }
