@@ -1,6 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 using KillItMyself.Independent;
+using UnityEditor.SceneManagement;
 
 public class LevelUpdater
 {
@@ -12,5 +13,7 @@ public class LevelUpdater
             GameObject go = new GameObject("GravityManager");
             go.AddComponent<GravityManager>();
         }
+
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
     }
 }
