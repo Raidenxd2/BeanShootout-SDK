@@ -32,11 +32,6 @@ public class Publishing : EditorWindow
         {
             MakeZip("LinuxBuild", "linux");
         }
-
-        if (GUILayout.Button("Create Zip for Android"))
-        {
-            MakeZip("AndroidBuild", "android");
-        }
     }
 
     private void MakeZip(string BuildPathName, string ZipName)

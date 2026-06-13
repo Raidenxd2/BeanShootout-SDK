@@ -95,13 +95,6 @@ public class Build : EditorWindow
             BuildLevel(ct, BuildTarget.StandaloneLinux64, "LinuxBuild");
         }
 
-        if (GUILayout.Button("Build for Android"))
-        {
-            Debug.Log("(BeanShootout) Building level");
-
-            BuildLevel(ct, BuildTarget.Android, "AndroidBuild");
-        }
-
         GUILayout.Space(25);
 
         if (GUILayout.Button("Cleanup build folders for all levels"))
@@ -127,11 +120,6 @@ public class Build : EditorWindow
                     {
                         File.Delete(item + "/LinuxBuild.meta");
                         Directory.Delete(item + "/LinuxBuild", true);
-                    }
-                    if (Directory.Exists(item + "/AndroidBuild"))
-                    {
-                        File.Delete(item + "/AndroidBuild.meta");
-                        Directory.Delete(item + "/AndroidBuild", true);
                     }
 
                     AssetDatabase.Refresh();
@@ -161,11 +149,6 @@ public class Build : EditorWindow
                 {
                     File.Delete(item + "/LinuxBuild.meta");
                     Directory.Delete(item + "/LinuxBuild", true);
-                }
-                if (Directory.Exists(item + "/AndroidBuild"))
-                {
-                    File.Delete(item + "/AndroidBuild.meta");
-                    Directory.Delete(item + "/AndroidBuild", true);
                 }
 
                 AssetDatabase.Refresh();
