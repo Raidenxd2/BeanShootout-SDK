@@ -14,6 +14,7 @@
     public const string LevelThumbnail_Created = "Created thumbnail under {0}";
     public const string LevelThumbnail_Failed = "Failed to save level thumbnail.";
     public const string Publishing_Created = "Created Zip file under {0}";
+    public const string Publishing_Failed = "Failed to create zip file.";
     public const string Setup_GammaColorSpace = "This project is currently using the Gamma color space. This will cause the color in-game to look off, and is unsupported. Would you like to change the color space to Linear?";
     public const string Setup_LegacyInput = "This project is currently configured to use the legacy Input Manager, which is not supported by Bean Shootout. Do you want to change the active input handling to the Input System? This will restart the Unity Editor.";
     public const string Setup_BothLegacyInputAndInputSystem = "This project is currently configured to use both the legacy Input Manager and the new Input System. The legacy Input Manager is not supported by Bean Shootout. Do you want to change the active input handling to be only the new Input System? this will restart the Unity Editor.";

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEditor;
 using Unity.SharpZipLib.Utils;
@@ -40,30 +41,35 @@ public class Publishing : EditorWindow
 
     private void MakeZip(string BuildPathName, string ZipName)
     {
-        EditorUtility.DisplayProgressBar(Constants.PackageName, "Creating Zip file...", 0);
-
-        string SceneName = EditorSceneManager.GetActiveScene().name;
-
-        // Delete the zip and meta files if it exists
-        if (File.Exists("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip"))
+        try
         {
-            File.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip");
-            File.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip.meta");
+            string SceneName = EditorSceneManager.GetActiveScene().name;
+
+            // Delete the zip and meta files if it exists
+            if (File.Exists("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip"))
+            {
+                File.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip");
+                File.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip.meta");
+                AssetDatabase.Refresh();
+            }
+
+            // Delete meta files
+            File.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName + "/level_data.bundle.meta");
+            File.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName + "/level_info.bundle.meta");
+
+            ZipUtility.CompressFolderToZip("Assets/Levels/" + SceneName + "-" + ZipName + ".zip", null, "Assets/Levels/" + SceneName + "/" + BuildPathName);
+
+            File.Move("Assets/Levels/" + SceneName + "-win64.zip", "Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip");
+
             AssetDatabase.Refresh();
-        }
-
-        // Delete meta files
-        File.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName + "/level_data.bundle.meta");
-        File.Delete("Assets/Levels/" + SceneName + "/" + BuildPathName + "/level_info.bundle.meta");
-
-        ZipUtility.CompressFolderToZip("Assets/Levels/" + SceneName + "-" + ZipName + ".zip", null, "Assets/Levels/" + SceneName + "/" + BuildPathName);
-
-        File.Move("Assets/Levels/" + SceneName + "-win64.zip", "Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip");
-
-        AssetDatabase.Refresh();
         
-        EditorDialog.DisplayAlertDialog(Constants.PackageName, string.Format(Strings.Publishing_Created, "'Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip'"), "OK", DialogIconType.Info);
-
-        EditorUtility.ClearProgressBar();
+            EditorDialog.DisplayAlertDialog(Constants.PackageName, string.Format(Strings.Publishing_Created, "'Assets/Levels/" + SceneName + "/" + BuildPathName + "/" + SceneName + "-" + ZipName + ".zip'"), "OK", DialogIconType.Info);
+        }
+        catch (Exception ex)
+        {
+            EditorDialog.DisplayAlertDialog(Constants.PackageName, Strings.Publishing_Failed, "OK", DialogIconType.Error);
+            
+            Debug.LogException(ex);
+        }
     }
 }
